@@ -1,0 +1,95 @@
+:root {
+  color: #dce3eb;
+  background: #080b10;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 70% 0%, rgb(21 38 53 / 60%), transparent 42rem),
+    #080b10;
+}
+
+.app-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 2rem;
+}
+
+.status-card {
+  width: min(42rem, 100%);
+  padding: clamp(2rem, 6vw, 4rem);
+  border: 1px solid #25303b;
+  border-radius: 1rem;
+  background: linear-gradient(145deg, rgb(18 24 33 / 96%), rgb(10 14 20 / 96%));
+  box-shadow: 0 2rem 5rem rgb(0 0 0 / 45%);
+}
+
+.eyebrow {
+  margin: 0 0 1rem;
+  color: #768494;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 8vw, 4.2rem);
+  font-weight: 620;
+  letter-spacing: -0.045em;
+  line-height: 0.96;
+}
+
+.status {
+  margin: 1rem 0 2rem;
+  color: #aab6c4;
+  font-size: 1.05rem;
+}
+
+.phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #2f5f47;
+  border-radius: 0.55rem;
+  color: #75e5a5;
+  background: rgb(79 208 138 / 8%);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+}
+
+.phase-indicator {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #4fd08a;
+  box-shadow: 0 0 0.8rem rgb(79 208 138 / 70%);
+}
+
+.note {
+  max-width: 34rem;
+  margin: 2rem 0 0;
+  color: #697685;
+  line-height: 1.65;
+}
