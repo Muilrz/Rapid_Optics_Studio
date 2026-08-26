@@ -5,13 +5,21 @@ import { useStudioStore } from './store/studioStore'
 function App() {
   const scene = useStudioStore((state) => state.authoritative.scene)
   const trace = useStudioStore((state) => state.derived.trace)
+  const selectedComponentId = useStudioStore(
+    (state) => state.editor.selectedComponentId,
+  )
+  const snapEnabled = useStudioStore((state) => state.editor.snapEnabled)
   const gridVisible = useStudioStore((state) => state.view.gridVisible)
   const setGridVisible = useStudioStore((state) => state.setGridVisible)
+  const setSnapEnabled = useStudioStore((state) => state.setSnapEnabled)
   const resetView = useStudioStore((state) => state.resetView)
   const detected = trace.events.some(
     (event) => event.kind === 'termination' && event.reason === 'detected',
   )
   const pitch_mm = scene.breadboards[0]?.hole_pitch_mm ?? 25
+  const selectedComponent = scene.components.find(
+    ({ id }) => id === selectedComponentId,
+  )
 
   return (
     <main className="studio-shell">
@@ -24,7 +32,7 @@ function App() {
           </div>
         </div>
 
-        <div className="toolbar-actions" aria-label="View controls">
+        <div className="toolbar-actions" aria-label="Studio controls">
           <button
             type="button"
             className="toolbar-button"
@@ -36,6 +44,17 @@ function App() {
             </span>
             Grid {gridVisible ? 'On' : 'Off'}
           </button>
+          <button
+            type="button"
+            className="toolbar-button"
+            aria-pressed={snapEnabled}
+            onClick={() => setSnapEnabled(!snapEnabled)}
+          >
+            <span className="button-icon" aria-hidden="true">
+              ◉
+            </span>
+            Snap {snapEnabled ? 'On' : 'Off'}
+          </button>
           <button type="button" className="toolbar-button" onClick={resetView}>
             <span className="button-icon" aria-hidden="true">
               ⌖
@@ -44,11 +63,14 @@ function App() {
           </button>
         </div>
 
-        <div className="toolbar-status" aria-live="polite">
+        <div
+          className={`toolbar-status${detected ? '' : ' toolbar-status--broken'}`}
+          aria-live="polite"
+        >
           <span className="status-indicator" aria-hidden="true" />
           <span className="toolbar-status-label">Derived trace</span>
           <span className="toolbar-status-value">
-            {detected ? 'PATH DETECTED' : 'TRACE COMPLETE'} · optics-v1
+            {detected ? 'PATH DETECTED' : 'NO DETECTOR PATH'} · optics-v1
           </span>
         </div>
       </header>
@@ -98,6 +120,26 @@ function App() {
               </dd>
             </div>
             <div className="info-row">
+              <dt className="info-label">Selection</dt>
+              <dd className="info-value" data-selection-status>
+                {selectedComponent
+                  ? `${selectedComponent.name} · ${selectedComponent.type}`
+                  : 'None'}
+              </dd>
+            </div>
+            {selectedComponent && (
+              <div className="info-row">
+                <dt className="info-label">Transform</dt>
+                <dd className="info-value transform-readout">
+                  <span>X {selectedComponent.transform.x_mm.toFixed(2)} mm</span>
+                  <span>Y {selectedComponent.transform.y_mm.toFixed(2)} mm</span>
+                  <span>
+                    θ {selectedComponent.transform.rotation_deg.toFixed(1)}°
+                  </span>
+                </dd>
+              </div>
+            )}
+            <div className="info-row">
               <dt className="info-label">Pitch</dt>
               <dd className="info-value">{pitch_mm} mm</dd>
             </div>
@@ -111,7 +153,8 @@ function App() {
             </div>
           </dl>
           <p className="read-only-note">
-            Read-only bench. Camera interactions never modify optical geometry.
+            Selection and Snap are editor-only. Camera controls never modify
+            optical geometry.
           </p>
         </aside>
       </section>

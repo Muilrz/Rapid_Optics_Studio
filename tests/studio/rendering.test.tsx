@@ -25,7 +25,7 @@ const viewport = createViewportSize(1000, 600)
 
 const count = (value: string, pattern: RegExp) => value.match(pattern)?.length ?? 0
 
-describe('read-only bench rendering', () => {
+describe('Studio bench rendering', () => {
   it('registers an explicit representation for all ten component types', () => {
     expect(Object.keys(COMPONENT_RENDER_REGISTRY)).toEqual([
       'laser',
@@ -68,6 +68,7 @@ describe('read-only bench rendering', () => {
           component={{ ...laser, enabled: false }}
           camera={camera}
           viewport={viewport}
+          selected
         />
       </svg>,
     )
@@ -75,6 +76,9 @@ describe('read-only bench rendering', () => {
     expect(markup).toContain('data-component-id="component:laser"')
     expect(markup).toContain('data-world-x-mm="50"')
     expect(markup).toContain('component-marker--disabled')
+    expect(markup).toContain('component-marker--selected')
+    expect(markup).toContain('data-component-hit-target="component:laser"')
+    expect(markup).toContain('data-rotation-handle="component:laser"')
     expect(markup).toContain('LASER')
   })
 

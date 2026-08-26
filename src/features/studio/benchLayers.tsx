@@ -1,4 +1,5 @@
 import type { Breadboard, OpticalScene, TraceResult } from '../../core/optics'
+import type { PointerEvent as ReactPointerEvent } from 'react'
 import { worldToScreen, type Camera2D, type ViewportSize } from './camera'
 import { ComponentMarker } from './ComponentMarker'
 
@@ -158,12 +159,24 @@ export function TraceLayer({ trace, camera, viewport }: TraceLayerProps) {
 
 interface ComponentLayerProps extends LayerViewProps {
   readonly components: OpticalScene['components']
+  readonly selectedComponentId?: string | null
+  readonly onMovePointerDown?: (
+    component: OpticalScene['components'][number],
+    event: ReactPointerEvent<SVGCircleElement>,
+  ) => void
+  readonly onRotatePointerDown?: (
+    component: OpticalScene['components'][number],
+    event: ReactPointerEvent<SVGCircleElement>,
+  ) => void
 }
 
 export function ComponentLayer({
   components,
   camera,
   viewport,
+  selectedComponentId = null,
+  onMovePointerDown,
+  onRotatePointerDown,
 }: ComponentLayerProps) {
   return (
     <g className="component-layer" aria-label="Optical components">
@@ -173,6 +186,9 @@ export function ComponentLayer({
           component={component}
           camera={camera}
           viewport={viewport}
+          selected={component.id === selectedComponentId}
+          onMovePointerDown={onMovePointerDown}
+          onRotatePointerDown={onRotatePointerDown}
         />
       ))}
     </g>

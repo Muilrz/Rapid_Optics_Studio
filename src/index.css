@@ -149,6 +149,15 @@ button {
   box-shadow: 0 0 10px rgb(85 216 144 / 75%);
 }
 
+.toolbar-status--broken .status-indicator {
+  background: #f1a953;
+  box-shadow: 0 0 10px rgb(241 169 83 / 70%);
+}
+
+.toolbar-status--broken .toolbar-status-value {
+  color: #efbf82;
+}
+
 .toolbar-status-value {
   overflow: hidden;
   color: #cbd6dc;
@@ -302,6 +311,41 @@ button {
   pointer-events: none;
 }
 
+.component-hit-target {
+  fill: transparent;
+  pointer-events: all;
+  cursor: move;
+}
+
+.component-selection-ring {
+  fill: rgb(86 165 194 / 8%);
+  stroke: #79c9df;
+  stroke-dasharray: 3 3;
+  stroke-width: 1.2px;
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.rotation-control {
+  pointer-events: none;
+}
+
+.rotation-guide {
+  stroke: #79c9df;
+  stroke-width: 1px;
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.rotation-handle {
+  fill: #101a20;
+  stroke: #a4e6f5;
+  stroke-width: 2px;
+  pointer-events: all;
+  cursor: crosshair;
+  vector-effect: non-scaling-stroke;
+}
+
 .component-glyph {
   fill: #12212a;
   stroke: currentColor;
@@ -349,6 +393,10 @@ button {
 
 .component-marker--disabled {
   opacity: 0.36;
+}
+
+.component-marker--disabled.component-marker--selected {
+  opacity: 0.72;
 }
 
 .component-marker--disabled .component-glyph {
@@ -435,6 +483,13 @@ button {
   color: #ccd6db;
   font-size: 0.78rem;
   line-height: 1.45;
+}
+
+.transform-readout {
+  display: grid;
+  gap: 3px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
 }
 
 .read-only-note {
