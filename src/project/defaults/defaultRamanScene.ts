@@ -1,0 +1,126 @@
+import {
+  OpticalSceneSchema,
+  SimulationConfigurationSchema,
+} from '../../core/optics'
+
+const visualization = {
+  beam_height_mm: 50,
+  post_height_mm: 50,
+  visual_depth_mm: 20,
+  holder: true,
+} as const
+
+const DEMO_GRID_PITCH_MM = 25
+
+const demoGridPositionToWorld = (x: number, y: number) => ({
+  x_mm: x * DEMO_GRID_PITCH_MM,
+  y_mm: -y * DEMO_GRID_PITCH_MM,
+})
+
+const demoAngleToWorld = (rotation_deg: number) =>
+  rotation_deg === 0 ? 0 : -rotation_deg
+
+const componentBase = (
+  id: string,
+  name: string,
+  demo_grid_x: number,
+  demo_grid_y: number,
+  demo_rotation_deg: number,
+  aperture_mm: number,
+) => ({
+  id,
+  name,
+  enabled: true,
+  transform: {
+    ...demoGridPositionToWorld(demo_grid_x, demo_grid_y),
+    rotation_deg: demoAngleToWorld(demo_rotation_deg),
+  },
+  geometry: { aperture_mm },
+  visualization,
+  metadata: { source: 'raman-sandbox-reference' },
+})
+
+/**
+ * Formal mm-based product default converted once from the reference Demo.
+ * Screen Y/angle conventions are isolated at this data boundary; Canvas
+ * drawing sizes are never treated as optical quantities.
+ */
+export const DEFAULT_RAMAN_SCENE = OpticalSceneSchema.parse({
+  breadboards: [
+    {
+      id: 'breadboard:default',
+      name: 'Default Raman breadboard',
+      origin_mm: { x: 0, y: 0 },
+      width_mm: 500,
+      height_mm: 300,
+      hole_pitch_mm: 25,
+    },
+  ],
+  components: [
+    {
+      ...componentBase('component:laser', 'Laser', 2, 3, 0, 10),
+      type: 'laser',
+      parameters: { wavelength_nm: 532, power_mw: 10 },
+    },
+    {
+      ...componentBase('component:mirror', 'Mirror', 8, 3, 45, 25),
+      type: 'mirror',
+      parameters: { reflectivity: 1 },
+    },
+    {
+      ...componentBase('component:dichroic', 'Dichroic', 8, 8, 45, 25),
+      type: 'dichroic',
+      parameters: {
+        excitation_reflectivity: 0.99,
+        excitation_transmission: 0.01,
+        raman_transmission: 1,
+      },
+    },
+    {
+      ...componentBase('component:objective', 'Objective', 13, 8, 90, 20),
+      type: 'objective',
+      parameters: { focal_length_mm: 75, numerical_aperture: 0.25 },
+    },
+    {
+      ...componentBase('component:sample', 'Sample', 16, 8, 90, 10),
+      type: 'sample',
+      parameters: { material_id: 'material:silicon' },
+    },
+    {
+      ...componentBase('component:filter', 'Edge Filter', 5, 8, 90, 25),
+      type: 'filter',
+      parameters: {
+        raman_transmission: 1,
+        rayleigh_suppression_od: 6,
+        leakage_model: 'angle-dependent',
+        leakage_midpoint_aoi_deg: 26,
+        leakage_transition_width_deg: 2,
+      },
+    },
+    {
+      ...componentBase(
+        'component:spectrometer',
+        'Spectrometer',
+        2,
+        8,
+        90,
+        20,
+      ),
+      type: 'spectrometer',
+      parameters: {
+        optical_throughput: 1,
+        acceptance_half_angle_deg: 90,
+      },
+    },
+  ],
+})
+
+export const DEFAULT_SIMULATION_CONFIGURATION =
+  SimulationConfigurationSchema.parse({
+    model_version: 'optics-v1',
+    min_ray_power_mw: 0.00001,
+    max_generations: 16,
+    max_rays: 1_000,
+    scene_escape_distance_mm: 2_000,
+    ray_origin_offset_mm: 0.000001,
+  })
