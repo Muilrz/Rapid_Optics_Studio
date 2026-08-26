@@ -4,7 +4,7 @@ Rapid Optics Studio is a Raman-first scientific engineering studio for building,
 
 ## Status
 
-V1 under development. The repository is currently at **Phase 1C — Tracer Foundation**: typed Optical Core contracts, deterministic 2D geometry, and the minimal Laser/Mirror/Sample/Spectrometer propagation chain are present. Phase 1D interactions and product UI have not started.
+V1 under development. The repository is currently at **Phase 1D — Remaining Optical Components**: all 10 V1 component types participate in the common deterministic Optical Core tracer, and the formal default Raman scene reaches Spectrometer detection. Raman signal physics and product UI have not started.
 
 ## Technology
 
@@ -51,7 +51,7 @@ npm run lint
 
 - `src/app`: application bootstrap and app-level concerns.
 - `src/features`: future product-facing feature modules.
-- `src/core`: pure TypeScript scientific computation modules; currently contains the Phase 1A data model, Phase 1B geometry layer, and Phase 1C tracer foundation.
+- `src/core`: pure TypeScript scientific computation modules; currently contains the Phase 1A data model, Phase 1B geometry layer, and Phase 1C/1D tracing interactions.
 - `src/project`: future project defaults, schema, serialization, and migration.
 - `src/store`: future Zustand state composition.
 - `src/types`: stable cross-module application types.

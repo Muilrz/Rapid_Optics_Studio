@@ -164,6 +164,8 @@ export const traceOpticalScene = (
       outgoingRayIds: Object.freeze(
         result.outgoingRays.map((outgoing) => outgoing.rayId),
       ),
+      power: result.power,
+      metadata: result.metadata,
     })
 
     if (result.outgoingRays.length === 0) {

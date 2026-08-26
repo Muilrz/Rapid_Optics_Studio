@@ -16,6 +16,16 @@ export type RayId = z.infer<typeof RayIdSchema>
 /** Minimal Phase 1C taxonomy; the sample return is not a Raman signal model. */
 export type OpticalRayKind = 'excitation' | 'sample-return-placeholder'
 
+/** Minimal lineage-carried focus context; no focus-efficiency physics. */
+export interface ObjectiveFocusMetadata {
+  readonly objectiveComponentId: ComponentId
+  readonly objectivePosition_mm: Vec2
+  readonly targetFocalDistance_mm: number
+  readonly sampleComponentId?: ComponentId
+  readonly actualDistance_mm?: number
+  readonly defocus_mm?: number
+}
+
 export interface OpticalRay {
   readonly rayId: RayId
   readonly parentRayId: RayId | null
@@ -25,6 +35,7 @@ export interface OpticalRay {
   readonly wavelength_nm: Nanometers
   readonly power_mw: NonNegativeMilliwatts
   readonly kind: OpticalRayKind
+  readonly focusMetadata?: ObjectiveFocusMetadata
 }
 
 export interface RayIdGenerator {
@@ -59,6 +70,7 @@ interface ChildOpticalRayInput {
   readonly wavelength_nm?: number
   readonly power_mw: number
   readonly kind?: OpticalRayKind
+  readonly focusMetadata?: ObjectiveFocusMetadata
 }
 
 const assertGeneration = (generation: number): void => {
@@ -76,8 +88,38 @@ const createOpticalRay = (
   wavelength_nm: number,
   power_mw: number,
   kind: OpticalRayKind,
+  focusMetadata?: ObjectiveFocusMetadata,
 ): OpticalRay => {
   assertGeneration(generation)
+
+  let frozenFocusMetadata: ObjectiveFocusMetadata | undefined
+  if (focusMetadata) {
+    const distances = [
+      focusMetadata.targetFocalDistance_mm,
+      focusMetadata.actualDistance_mm,
+      focusMetadata.defocus_mm,
+    ].filter((value): value is number => value !== undefined)
+    if (!distances.every(Number.isFinite)) {
+      throw new RangeError('Focus metadata distances must be finite.')
+    }
+    if (focusMetadata.targetFocalDistance_mm <= 0) {
+      throw new RangeError('Target focal distance must be positive.')
+    }
+    if (
+      focusMetadata.actualDistance_mm !== undefined &&
+      focusMetadata.actualDistance_mm < 0
+    ) {
+      throw new RangeError('Actual focus distance must not be negative.')
+    }
+
+    frozenFocusMetadata = Object.freeze({
+      ...focusMetadata,
+      objectivePosition_mm: Object.freeze({
+        x: focusMetadata.objectivePosition_mm.x,
+        y: focusMetadata.objectivePosition_mm.y,
+      }),
+    })
+  }
 
   return Object.freeze({
     rayId: RayIdSchema.parse(rayId),
@@ -88,6 +130,7 @@ const createOpticalRay = (
     wavelength_nm: NanometersSchema.parse(wavelength_nm),
     power_mw: NonNegativeMilliwattsSchema.parse(power_mw),
     kind,
+    focusMetadata: frozenFocusMetadata,
   })
 }
 
@@ -103,6 +146,7 @@ export const createInitialOpticalRay = (
     input.wavelength_nm,
     input.power_mw,
     input.kind ?? 'excitation',
+    undefined,
   )
 
 export const createChildOpticalRay = (
@@ -118,4 +162,5 @@ export const createChildOpticalRay = (
     input.wavelength_nm ?? parent.wavelength_nm,
     input.power_mw,
     input.kind ?? parent.kind,
+    input.focusMetadata ?? parent.focusMetadata,
   )

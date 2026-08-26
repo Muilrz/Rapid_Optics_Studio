@@ -113,6 +113,8 @@ export const DEFAULT_RAMAN_SCENE = OpticalSceneSchema.parse({
         raman_transmission: 1,
         rayleigh_suppression_od: 6,
         leakage_model: 'angle-dependent',
+        leakage_midpoint_aoi_deg: 26,
+        leakage_transition_width_deg: 2,
       },
     },
     {

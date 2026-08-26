@@ -52,13 +52,33 @@ export const SampleParametersSchema = z
   })
   .strict()
 
-export const FilterParametersSchema = z
-  .object({
-    raman_transmission: UnitIntervalSchema,
-    rayleigh_suppression_od: NonNegativeOpticalDensitySchema,
-    leakage_model: z.enum(['constant', 'angle-dependent']),
-  })
-  .strict()
+const CommonFilterParameterShape = {
+  raman_transmission: UnitIntervalSchema,
+  rayleigh_suppression_od: NonNegativeOpticalDensitySchema,
+} as const
+
+export const FilterParametersSchema = z.discriminatedUnion('leakage_model', [
+  z
+    .object({
+      ...CommonFilterParameterShape,
+      leakage_model: z.literal('constant'),
+    })
+    .strict(),
+  z
+    .object({
+      ...CommonFilterParameterShape,
+      leakage_model: z.literal('angle-dependent'),
+      leakage_midpoint_aoi_deg: DegreesSchema.refine(
+        (value) => value >= 0 && value <= 90,
+        'Leakage midpoint AOI must be between 0 and 90 degrees.',
+      ),
+      leakage_transition_width_deg: DegreesSchema.refine(
+        (value) => value > 0 && value <= 90,
+        'Leakage transition width must be greater than 0 and at most 90 degrees.',
+      ),
+    })
+    .strict(),
+])
 
 export const SpectrometerParametersSchema = z
   .object({

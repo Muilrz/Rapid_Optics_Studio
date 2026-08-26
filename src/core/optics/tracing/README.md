@@ -29,9 +29,24 @@ spectroscopy, detector physics, or Phase 1D component interactions.
 
 - Laser: one ideal collimated source ray along the component's rotation.
 - Mirror: ideal geometric reflection with configured reflectivity loss.
+- Objective: direction-preserving simplified pass with lineage-carried focal
+  distance context and Sample distance/defocus metadata.
+- Dichroic: kind-aware deterministic transmission/reflection. Transmitted is
+  always the first semantic branch, followed by reflected. The oriented normal
+  classifies front/back incidence for diagnostics; this V1 coating model uses
+  the same configured coefficients on both sides.
 - Sample: strict backward elastic placeholder return used only to establish
   the tracer path. It is explicitly not Raman emission or Raman physics.
-- Spectrometer: terminal detection only; no response or acceptance model.
+- Filter: Raman-placeholder transmission plus reference-derived, parameterized
+  AOI leakage for excitation rays.
+- Beam Splitter: transmitted then reflected deterministic branches.
+- Prism: configurable signed simplified deflection relative to surface tangent.
+- Pinhole: pass/block using the generic aperture-plane hit.
+- Spectrometer: terminal acceptance about either direction of its surface
+  normal; the configured half-angle boundary is inclusive.
+
+Every interaction event records incoming, outgoing, detected, and lost power.
+The four terms are expressed in mW and no interaction may increase total power.
 
 Other component types intentionally have no Phase 1C geometry candidate and
 are not treated as transparent optical elements.

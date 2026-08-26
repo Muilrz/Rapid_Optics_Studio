@@ -5,6 +5,7 @@ import {
   type GeometryEpsilonPolicy,
 } from './epsilon'
 import type {
+  AperturePlane2D,
   CircularTarget2D,
   FiniteOpticalSurface2D,
   GeometryPrimitive2D,
@@ -41,7 +42,16 @@ export interface CircularTargetHit extends GeometryHitBase {
   readonly radius_mm: number
 }
 
-export type GeometryHit = FiniteSurfaceHit | CircularTargetHit
+export interface AperturePlaneHit extends GeometryHitBase {
+  readonly primitiveKind: 'aperture-plane'
+  readonly localOffset_mm: number
+  readonly insideAperture: boolean
+}
+
+export type GeometryHit =
+  | FiniteSurfaceHit
+  | CircularTargetHit
+  | AperturePlaneHit
 
 const assertNormalizedRay = (
   ray: Ray2D,
@@ -132,6 +142,41 @@ export const intersectRayWithCircularTarget = (
   })
 }
 
+export const intersectRayWithAperturePlane = (
+  ray: Ray2D,
+  plane: AperturePlane2D,
+  epsilon: GeometryEpsilonPolicy = DEFAULT_GEOMETRY_EPSILON,
+): AperturePlaneHit | null => {
+  assertValidEpsilonPolicy(epsilon)
+  assertNormalizedRay(ray, epsilon)
+
+  const denominator = cross(ray.direction, plane.tangent)
+  if (Math.abs(denominator) <= epsilon.parallel) {
+    return null
+  }
+
+  const centerDelta = subtract(plane.center, ray.origin)
+  const distance_mm = cross(centerDelta, plane.tangent) / denominator
+  if (distance_mm <= epsilon.positiveDistance_mm) {
+    return null
+  }
+
+  const localOffset_mm = cross(centerDelta, ray.direction) / denominator
+  const insideAperture =
+    Math.abs(localOffset_mm) <=
+    plane.halfAperture_mm + epsilon.boundaryDistance_mm
+
+  return Object.freeze({
+    primitiveKind: 'aperture-plane' as const,
+    point: add(ray.origin, scale(ray.direction, distance_mm)),
+    distance_mm,
+    tangent: plane.tangent,
+    normal: plane.normal,
+    localOffset_mm,
+    insideAperture,
+  })
+}
+
 export const intersectRayWithPrimitive = (
   ray: Ray2D,
   primitive: GeometryPrimitive2D,
@@ -139,4 +184,6 @@ export const intersectRayWithPrimitive = (
 ): GeometryHit | null =>
   primitive.kind === 'finite-optical-surface'
     ? intersectRayWithFiniteSurface(ray, primitive, epsilon)
-    : intersectRayWithCircularTarget(ray, primitive, epsilon)
+    : primitive.kind === 'circular-target'
+      ? intersectRayWithCircularTarget(ray, primitive, epsilon)
+      : intersectRayWithAperturePlane(ray, primitive, epsilon)

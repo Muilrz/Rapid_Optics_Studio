@@ -34,6 +34,13 @@ interaction may use it, but this module never reflects or routes a ray.
 `aperture_mm` is the full effective diameter. The radius is always
 `aperture_mm / 2`. A hit normal points radially outward.
 
+## Aperture planes
+
+`AperturePlane2D` is a generic infinite 2D baffle plane with a centered clear
+opening. `aperture_mm` is the full opening width. Intersections report whether
+the crossing lies inside the opening; pass/block semantics remain outside the
+geometry layer.
+
 ## Ray2D
 
 `Ray2D` contains only `origin` and `direction`. Origin coordinates are world

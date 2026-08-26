@@ -10,7 +10,7 @@ const getComponent = (type: string) =>
   DEFAULT_RAMAN_SCENE.components.find((component) => component.type === type)!
 
 describe('component geometry adapter', () => {
-  it('maps only implemented Phase 1C interaction components', () => {
+  it('maps every non-source V1 component to generic geometry', () => {
     expect(componentToGeometryCandidate(getComponent('mirror'))?.primitive.kind)
       .toBe('finite-optical-surface')
     expect(componentToGeometryCandidate(getComponent('sample'))?.primitive.kind)
@@ -19,7 +19,15 @@ describe('component geometry adapter', () => {
       componentToGeometryCandidate(getComponent('spectrometer'))?.primitive.kind,
     ).toBe('finite-optical-surface')
     expect(componentToGeometryCandidate(getComponent('laser'))).toBeNull()
-    expect(componentToGeometryCandidate(getComponent('dichroic'))).toBeNull()
+    expect(
+      componentToGeometryCandidate(getComponent('dichroic'))?.primitive.kind,
+    ).toBe('finite-optical-surface')
+    expect(
+      componentToGeometryCandidate(getComponent('objective'))?.primitive.kind,
+    ).toBe('finite-optical-surface')
+    expect(
+      componentToGeometryCandidate(getComponent('filter'))?.primitive.kind,
+    ).toBe('finite-optical-surface')
   })
 
   it('uses the stable component ID as candidate key', () => {

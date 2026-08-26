@@ -24,7 +24,22 @@ export interface CircularTarget2D {
   readonly radius_mm: number
 }
 
-export type GeometryPrimitive2D = FiniteOpticalSurface2D | CircularTarget2D
+/** Infinite 2D baffle plane with a centered finite opening. */
+export interface AperturePlane2D {
+  readonly kind: 'aperture-plane'
+  readonly center: Vec2
+  readonly rotation_deg: number
+  /** Full clear opening width, centered on `center`. */
+  readonly aperture_mm: number
+  readonly halfAperture_mm: number
+  readonly tangent: Vec2
+  readonly normal: Vec2
+}
+
+export type GeometryPrimitive2D =
+  | FiniteOpticalSurface2D
+  | CircularTarget2D
+  | AperturePlane2D
 
 const assertPositiveAperture = (aperture_mm: number): void => {
   if (!Number.isFinite(aperture_mm) || aperture_mm <= 0) {
@@ -66,5 +81,28 @@ export const createCircularTarget = (
     center: vec2(transform.x_mm, transform.y_mm),
     aperture_mm: geometry.aperture_mm,
     radius_mm: geometry.aperture_mm / 2,
+  })
+}
+
+export const createAperturePlane = (
+  transform: Transform2D,
+  geometry: OpticalGeometry,
+): AperturePlane2D => {
+  assertPositiveAperture(geometry.aperture_mm)
+  if (!Number.isFinite(transform.rotation_deg)) {
+    throw new RangeError('Aperture-plane rotation must be finite.')
+  }
+
+  const tangent = rotate(vec2(1, 0), transform.rotation_deg)
+  const normal = perpendicularCounterClockwise(tangent)
+
+  return Object.freeze({
+    kind: 'aperture-plane' as const,
+    center: vec2(transform.x_mm, transform.y_mm),
+    rotation_deg: transform.rotation_deg,
+    aperture_mm: geometry.aperture_mm,
+    halfAperture_mm: geometry.aperture_mm / 2,
+    tangent,
+    normal,
   })
 }

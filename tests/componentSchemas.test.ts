@@ -72,6 +72,8 @@ const validComponents = [
       raman_transmission: 0.95,
       rayleigh_suppression_od: 6,
       leakage_model: 'angle-dependent',
+      leakage_midpoint_aoi_deg: 26,
+      leakage_transition_width_deg: 2,
     },
   },
   {
@@ -146,6 +148,21 @@ describe('optical component schemas', () => {
   ])('rejects invalid laser parameters %#', (parameters) => {
     expect(() =>
       OpticalComponentSchema.parse({ ...validLaser, parameters }),
+    ).toThrow()
+  })
+
+  it('rejects invalid angle-dependent Filter transition parameters', () => {
+    const filter = validComponents.find(
+      (component) => component.type === 'filter',
+    )!
+    expect(() =>
+      OpticalComponentSchema.parse({
+        ...filter,
+        parameters: {
+          ...filter.parameters,
+          leakage_transition_width_deg: 0,
+        },
+      }),
     ).toThrow()
   })
 })

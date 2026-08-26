@@ -1,19 +1,15 @@
 import {
+  createAperturePlane,
   createCircularTarget,
   createFiniteOpticalSurface,
   type GeometryIntersectionCandidate,
 } from '../geometry'
-import type {
-  MirrorComponent,
-  OpticalComponent,
-  SampleComponent,
-  SpectrometerComponent,
-} from '../model'
+import type { OpticalComponent } from '../model'
 
-export type TraceInteractionComponent =
-  | MirrorComponent
-  | SampleComponent
-  | SpectrometerComponent
+export type TraceInteractionComponent = Exclude<
+  OpticalComponent,
+  { readonly type: 'laser' }
+>
 
 export interface ComponentGeometryCandidate
   extends GeometryIntersectionCandidate {
@@ -21,8 +17,8 @@ export interface ComponentGeometryCandidate
 }
 
 /**
- * Phase 1C maps only components with an implemented interaction. Unsupported
- * component types remain absent instead of silently behaving as transparent.
+ * Laser is a source rather than a hit candidate. Every other V1 component is
+ * mapped to a generic geometry primitive; optical semantics remain elsewhere.
  */
 export const componentToGeometryCandidate = (
   component: OpticalComponent,
@@ -31,7 +27,12 @@ export const componentToGeometryCandidate = (
 
   switch (component.type) {
     case 'mirror':
+    case 'dichroic':
+    case 'objective':
+    case 'filter':
     case 'spectrometer':
+    case 'prism':
+    case 'beam-splitter':
       return Object.freeze({
         key: component.id,
         primitive: createFiniteOpticalSurface(
@@ -49,7 +50,16 @@ export const componentToGeometryCandidate = (
         ),
         component,
       })
-    default:
+    case 'pinhole':
+      return Object.freeze({
+        key: component.id,
+        primitive: createAperturePlane(
+          component.transform,
+          component.geometry,
+        ),
+        component,
+      })
+    case 'laser':
       return null
   }
 }
