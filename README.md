@@ -4,7 +4,7 @@ Rapid Optics Studio is a Raman-first scientific engineering studio for building,
 
 ## Status
 
-V1 under development. The repository has completed **Phase 2B — Selection + Move + Rotate + Snap**. The hardened Phase 1 Optical Core now drives an editable, millimeter-based 2D Studio with single selection, screen-space editor hit targets, world-space component movement, deterministic 25 mm position snap, formal rotation handles, and real-time derived tracing. Component creation/deletion, Inspector editing, multi-select, undo/redo, Raman signal physics, CCD simulation, acquisition, and 3D remain future phases.
+V1 under development. The repository has completed **Phase 2C — Component Library + Add/Delete + Property Inspector**. The millimeter-based 2D Studio now supports schema-valid creation of all ten V1 component types, monotonic stable IDs, viewport-centered insertion, deletion, common/transform/geometry/type-specific Inspector editing, local numeric draft validation, and real-time Phase 1 tracing. Multi-select, clipboard, undo/redo, project I/O, Raman signal physics, CCD simulation, acquisition, and 3D remain future phases.
 
 ## Technology
 
@@ -52,13 +52,13 @@ npm run lint
 - `src/app`: application bootstrap and app-level concerns.
 - `src/features`: product-facing feature modules; currently contains the 2D Studio camera, pure editor math, editability policy, and interactive SVG bench layers.
 - `src/core`: pure TypeScript scientific computation modules; currently contains the hardened Phase 1 data model, geometry, and 10-component tracing core.
-- `src/project`: product defaults and future serialization/migration; currently owns the formal default Raman scene.
+- `src/project`: product defaults and component definitions/factories; currently owns the formal default Raman scene and ten-type Studio creation registry.
 - `src/store`: Zustand application state composition with separate authoritative, editor, view, and derived boundaries.
 - `src/types`: stable cross-module application types.
 - `src/utils`: genuinely shared utilities.
 - `tests/fixtures`: reference, regression, stress, and performance fixtures.
 - `tests/regression`: deterministic Optical Core and Demo behavior regressions.
-- `tests/studio`: camera, editor math, state-boundary, component registry, and interactive bench rendering tests.
+- `tests/studio`: camera, editor math, component definitions/factory, scene mutations, Inspector validation, state-boundary, and interactive bench rendering tests.
 - `tests/performance`: non-flaky diagnostic Optical Core performance baselines.
 - `reference`: read-only product behavior reference material.
 

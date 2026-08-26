@@ -80,6 +80,9 @@ export function OpticalBench() {
   const updateComponentTransform = useStudioStore(
     (state) => state.updateComponentTransform,
   )
+  const deleteSelectedComponent = useStudioStore(
+    (state) => state.deleteSelectedComponent,
+  )
   const setViewportSize = useStudioStore((state) => state.setViewportSize)
   const panView = useStudioStore((state) => state.panView)
   const zoomViewAt = useStudioStore((state) => state.zoomViewAt)
@@ -103,6 +106,19 @@ export function OpticalBench() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        const target = event.target
+        if (
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target instanceof HTMLSelectElement ||
+          (target instanceof HTMLElement && target.isContentEditable)
+        ) {
+          return
+        }
+        if (deleteSelectedComponent()) event.preventDefault()
+        return
+      }
       if (event.key !== 'Escape') return
       const gesture = activeGesture.current
       if (gesture?.kind === 'move' || gesture?.kind === 'rotate') {
@@ -122,7 +138,7 @@ export function OpticalBench() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setSelection, updateComponentTransform])
+  }, [deleteSelectedComponent, setSelection, updateComponentTransform])
 
   const pointerWorld = (
     clientX: number,
