@@ -69,6 +69,8 @@ describe('Studio bench rendering', () => {
           camera={camera}
           viewport={viewport}
           selected
+          primary
+          showRotationHandle
         />
       </svg>,
     )
@@ -77,6 +79,7 @@ describe('Studio bench rendering', () => {
     expect(markup).toContain('data-world-x-mm="50"')
     expect(markup).toContain('component-marker--disabled')
     expect(markup).toContain('component-marker--selected')
+    expect(markup).toContain('component-marker--primary')
     expect(markup).toContain('data-component-hit-target="component:laser"')
     expect(markup).toContain('data-rotation-handle="component:laser"')
     expect(markup).toContain('LASER')
@@ -119,6 +122,26 @@ describe('Studio bench rendering', () => {
     expect(count(traceMarkup, /data-ray-id=/g)).toBe(trace.segments.length)
     expect(traceMarkup).toContain('trace-excitation')
     expect(traceMarkup).toContain('trace-sample-return-placeholder')
+  })
+
+  it('distinguishes every selected component from one primary without group rotation UI', () => {
+    const [laser, mirror] = DEFAULT_RAMAN_SCENE.components
+    if (!laser || !mirror) throw new Error('Fixture is incomplete.')
+    const markup = renderToStaticMarkup(
+      <svg>
+        <ComponentLayer
+          components={DEFAULT_RAMAN_SCENE.components}
+          camera={camera}
+          viewport={viewport}
+          selectedComponentIds={[laser.id, mirror.id]}
+          primaryComponentId={mirror.id}
+        />
+      </svg>,
+    )
+
+    expect(count(markup, /data-selected="true"/g)).toBe(2)
+    expect(count(markup, /data-primary="true"/g)).toBe(1)
+    expect(markup).not.toContain('data-rotation-handle=')
   })
 
   it('renders every segment of a branching trace without flattening branches', () => {

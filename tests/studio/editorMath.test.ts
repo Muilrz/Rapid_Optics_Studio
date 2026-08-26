@@ -8,6 +8,7 @@ import {
 } from '../../src/features/studio/camera'
 import {
   COMPONENT_EDITABILITY_POLICY,
+  moveTransformGroupFromWorldPointers,
   moveTransformFromWorldPointers,
   normalizeEditorAngleDeg,
   rotateTransformTowardWorldPointer,
@@ -66,6 +67,39 @@ describe('Studio editor math', () => {
       y_mm: -100,
       rotation_deg: -45,
     })
+  })
+
+  it('snaps only the group anchor and preserves every relative transform', () => {
+    const moved = moveTransformGroupFromWorldPointers(
+      [
+        { id: 'primary', transform },
+        {
+          id: 'secondary',
+          transform: Transform2DSchema.parse({
+            x_mm: 237.5,
+            y_mm: -112.5,
+            rotation_deg: 30,
+          }),
+        },
+      ],
+      'primary',
+      { x: 200, y: -75 },
+      { x: 214, y: -89 },
+      { pitch_mm: 25, origin_mm: { x: 0, y: 0 } },
+    )
+
+    expect(moved).toEqual([
+      {
+        id: 'primary',
+        transform: { x_mm: 225, y_mm: -100, rotation_deg: -45 },
+      },
+      {
+        id: 'secondary',
+        transform: { x_mm: 262.5, y_mm: -137.5, rotation_deg: 30 },
+      },
+    ])
+    expect(moved[1]!.transform.x_mm - moved[0]!.transform.x_mm).toBe(37.5)
+    expect(moved[1]!.transform.y_mm - moved[0]!.transform.y_mm).toBe(-37.5)
   })
 
   it('produces the same world move after different camera pan and zoom', () => {

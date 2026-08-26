@@ -159,7 +159,8 @@ export function TraceLayer({ trace, camera, viewport }: TraceLayerProps) {
 
 interface ComponentLayerProps extends LayerViewProps {
   readonly components: OpticalScene['components']
-  readonly selectedComponentId?: string | null
+  readonly selectedComponentIds?: readonly string[]
+  readonly primaryComponentId?: string | null
   readonly onMovePointerDown?: (
     component: OpticalScene['components'][number],
     event: ReactPointerEvent<SVGCircleElement>,
@@ -174,7 +175,8 @@ export function ComponentLayer({
   components,
   camera,
   viewport,
-  selectedComponentId = null,
+  selectedComponentIds = [],
+  primaryComponentId = null,
   onMovePointerDown,
   onRotatePointerDown,
 }: ComponentLayerProps) {
@@ -186,7 +188,12 @@ export function ComponentLayer({
           component={component}
           camera={camera}
           viewport={viewport}
-          selected={component.id === selectedComponentId}
+          selected={selectedComponentIds.includes(component.id)}
+          primary={component.id === primaryComponentId}
+          showRotationHandle={
+            selectedComponentIds.length === 1 &&
+            component.id === primaryComponentId
+          }
           onMovePointerDown={onMovePointerDown}
           onRotatePointerDown={onRotatePointerDown}
         />

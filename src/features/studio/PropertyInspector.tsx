@@ -96,14 +96,21 @@ const visibleParameterFields = (
   )
 
 export function PropertyInspector() {
-  const selectedComponentId = useStudioStore(
-    (state) => state.editor.selectedComponentId,
+  const selectedComponentIds = useStudioStore(
+    (state) => state.editor.selectedComponentIds,
   )
-  const component = useStudioStore((state) =>
-    state.authoritative.scene.components.find(
-      ({ id }) => id === state.editor.selectedComponentId,
-    ),
+  const primaryComponentId = useStudioStore(
+    (state) => state.editor.primaryComponentId,
   )
+  const sceneComponents = useStudioStore(
+    (state) => state.authoritative.scene.components,
+  )
+  const selected = new Set(selectedComponentIds)
+  const selectedComponents = sceneComponents.filter(({ id }) => selected.has(id))
+  const component =
+    selectedComponents.length === 1 && selectedComponents[0]?.id === primaryComponentId
+      ? selectedComponents[0]
+      : undefined
   const trace = useStudioStore((state) => state.derived.trace)
   const updateCommon = useStudioStore((state) => state.updateComponentCommon)
   const updateTransform = useStudioStore(
@@ -116,12 +123,15 @@ export function PropertyInspector() {
     (state) => state.updateComponentParameters,
   )
   const deleteComponent = useStudioStore((state) => state.deleteComponent)
+  const deleteSelectedComponents = useStudioStore(
+    (state) => state.deleteSelectedComponents,
+  )
 
-  if (!selectedComponentId || !component) {
+  if (selectedComponentIds.length === 0 || !primaryComponentId) {
     return (
       <aside className="property-inspector" aria-label="Property Inspector">
         <div className="side-panel-header">
-          <p className="info-label">Single selection</p>
+          <p className="info-label">Selection</p>
           <h2>Property Inspector</h2>
         </div>
         <div className="inspector-empty" data-inspector-empty>
@@ -133,6 +143,49 @@ export function PropertyInspector() {
       </aside>
     )
   }
+
+  if (selectedComponents.length > 1) {
+    return (
+      <aside
+        className="property-inspector"
+        aria-label="Property Inspector"
+        data-inspector-multi-count={selectedComponents.length}
+      >
+        <div className="side-panel-header inspector-title-row">
+          <div>
+            <p className="info-label">Multiple selection</p>
+            <h2>{selectedComponents.length} components</h2>
+          </div>
+          <button
+            type="button"
+            className="delete-component-button"
+            onClick={deleteSelectedComponents}
+          >
+            Delete all
+          </button>
+        </div>
+        <section className="inspector-section inspector-selection-summary">
+          <h3>Selection summary</h3>
+          <p>Drag any selected component to move the group while preserving relative layout.</p>
+          <ul>
+            {selectedComponents.map((selected) => (
+              <li
+                key={selected.id}
+                data-summary-component-id={selected.id}
+                data-summary-primary={selected.id === primaryComponentId}
+              >
+                <span>{selected.name}</span>
+                <code>{selected.type}</code>
+                {selected.id === primaryComponentId && <em>Primary</em>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </aside>
+    )
+  }
+
+  if (!component) return null
 
   const definition = COMPONENT_DEFINITIONS[component.type]
   const parameters = asParameterRecord(component.parameters)

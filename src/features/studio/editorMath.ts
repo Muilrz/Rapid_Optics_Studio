@@ -105,6 +105,46 @@ export const moveTransformFromWorldPointers = (
   })
 }
 
+export interface ComponentTransformUpdate {
+  readonly id: string
+  readonly transform: Transform2D
+}
+
+/**
+ * Snaps only the designated group anchor, then applies its exact world-space
+ * delta to every member so relative layout is preserved.
+ */
+export const moveTransformGroupFromWorldPointers = (
+  startingTransforms: readonly ComponentTransformUpdate[],
+  anchorId: string,
+  startingPointer_mm: Vec2,
+  currentPointer_mm: Vec2,
+  snap?: { readonly pitch_mm: number; readonly origin_mm: Vec2 },
+): readonly ComponentTransformUpdate[] => {
+  const anchor = startingTransforms.find(({ id }) => id === anchorId)
+  if (!anchor) throw new RangeError(`Unknown group anchor: ${anchorId}`)
+  const movedAnchor = moveTransformFromWorldPointers(
+    anchor.transform,
+    startingPointer_mm,
+    currentPointer_mm,
+    snap,
+  )
+  const delta = {
+    x: movedAnchor.x_mm - anchor.transform.x_mm,
+    y: movedAnchor.y_mm - anchor.transform.y_mm,
+  }
+  return Object.freeze(
+    startingTransforms.map(({ id, transform }) => ({
+      id,
+      transform: Transform2DSchema.parse({
+        x_mm: transform.x_mm + delta.x,
+        y_mm: transform.y_mm + delta.y,
+        rotation_deg: transform.rotation_deg,
+      }),
+    })),
+  )
+}
+
 /**
  * Rotation is the world-space angle from component center to pointer. Because
  * world +Y points up, atan2 directly matches the Phase 1 positive-CCW contract.

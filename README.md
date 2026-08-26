@@ -4,7 +4,7 @@ Rapid Optics Studio is a Raman-first scientific engineering studio for building,
 
 ## Status
 
-V1 under development. The repository has completed **Phase 2C — Component Library + Add/Delete + Property Inspector**. The millimeter-based 2D Studio now supports schema-valid creation of all ten V1 component types, monotonic stable IDs, viewport-centered insertion, deletion, common/transform/geometry/type-specific Inspector editing, local numeric draft validation, and real-time Phase 1 tracing. Multi-select, clipboard, undo/redo, project I/O, Raman signal physics, CCD simulation, acquisition, and 3D remain future phases.
+V1 under development. The repository has completed **Phase 2D — Multi-select + Clipboard + Duplicate + Undo/Redo**. The millimeter-based 2D Studio now supports deterministic multi-selection with a primary component, anchor-snapped group movement, an ID-free editor clipboard, paste/duplicate with monotonic stable IDs, bounded scene-design undo/redo, multi-delete, single-selection property editing, and real-time Phase 1 tracing. Project I/O, Raman signal physics, CCD simulation, acquisition, and 3D remain future phases.
 
 ## Technology
 
@@ -50,15 +50,15 @@ npm run lint
 ## Directory overview
 
 - `src/app`: application bootstrap and app-level concerns.
-- `src/features`: product-facing feature modules; currently contains the 2D Studio camera, pure editor math, editability policy, and interactive SVG bench layers.
+- `src/features`: product-facing feature modules; currently contains the 2D Studio camera, deterministic selection/group-move helpers, editability policy, and interactive SVG bench layers.
 - `src/core`: pure TypeScript scientific computation modules; currently contains the hardened Phase 1 data model, geometry, and 10-component tracing core.
 - `src/project`: product defaults and component definitions/factories; currently owns the formal default Raman scene and ten-type Studio creation registry.
-- `src/store`: Zustand application state composition with separate authoritative, editor, view, and derived boundaries.
+- `src/store`: Zustand application state composition with separate authoritative, editor clipboard/selection, bounded design history, view, and derived boundaries.
 - `src/types`: stable cross-module application types.
 - `src/utils`: genuinely shared utilities.
 - `tests/fixtures`: reference, regression, stress, and performance fixtures.
 - `tests/regression`: deterministic Optical Core and Demo behavior regressions.
-- `tests/studio`: camera, editor math, component definitions/factory, scene mutations, Inspector validation, state-boundary, and interactive bench rendering tests.
+- `tests/studio`: camera, selection/group-move math, component definitions/factory, clipboard/history, scene mutations, Inspector validation, state-boundary, and interactive bench rendering tests.
 - `tests/performance`: non-flaky diagnostic Optical Core performance baselines.
 - `reference`: read-only product behavior reference material.
 

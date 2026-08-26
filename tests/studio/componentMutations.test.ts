@@ -44,7 +44,8 @@ describe('Studio component mutation boundaries', () => {
     expect(added?.type).toBe('mirror')
     expect(added?.transform.x_mm).toBe(250)
     expect(added?.transform.y_mm).toBe(-150)
-    expect(changed.editor.selectedComponentId).toBe(id)
+    expect(changed.editor.selectedComponentIds).toEqual([id])
+    expect(changed.editor.primaryComponentId).toBe(id)
     expect(changed.authoritative.scene).not.toBe(initial.authoritative.scene)
     expect(changed.authoritative.scene.components[0]).toBe(existingComponents[0])
     expect(changed.derived.trace).not.toBe(initial.derived.trace)
@@ -60,12 +61,13 @@ describe('Studio component mutation boundaries', () => {
     )
     const traceBeforeDelete = store.getState().derived.trace
 
-    expect(store.getState().deleteSelectedComponent()).toBe(true)
+    expect(store.getState().deleteSelectedComponents()).toBe(true)
     const deleted = store.getState()
     expect(
       deleted.authoritative.scene.components.some(({ id }) => id === firstId),
     ).toBe(false)
-    expect(deleted.editor.selectedComponentId).toBeNull()
+    expect(deleted.editor.selectedComponentIds).toEqual([])
+    expect(deleted.editor.primaryComponentId).toBeNull()
     expect(componentOfType(deleted.authoritative.scene.components, 'laser')).toBe(
       preservedLaser,
     )

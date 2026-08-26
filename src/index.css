@@ -122,6 +122,13 @@ button {
   background: #1b262d;
 }
 
+.toolbar-button:disabled {
+  border-color: #273038;
+  color: #5f6a72;
+  background: #11171c;
+  cursor: not-allowed;
+}
+
 .toolbar-button:focus-visible {
   outline: 2px solid #6db4cb;
   outline-offset: 2px;
@@ -403,6 +410,13 @@ button {
   vector-effect: non-scaling-stroke;
 }
 
+.component-marker--primary .component-selection-ring {
+  fill: rgb(105 190 215 / 12%);
+  stroke: #b0edfa;
+  stroke-dasharray: none;
+  stroke-width: 1.8px;
+}
+
 .rotation-control {
   pointer-events: none;
 }
@@ -585,6 +599,46 @@ button {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.64rem;
   letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.inspector-selection-summary p {
+  margin: 0;
+  color: #84949d;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.inspector-selection-summary ul {
+  display: grid;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inspector-selection-summary li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  padding: 7px 8px;
+  border: 1px solid #27343d;
+  border-radius: 4px;
+  color: #c2cdd3;
+  background: #111920;
+  font-size: 0.7rem;
+}
+
+.inspector-selection-summary code,
+.inspector-selection-summary em {
+  color: #71848e;
+  font-size: 0.6rem;
+  font-style: normal;
+}
+
+.inspector-selection-summary em {
+  grid-column: 1 / -1;
+  color: #8ecfe0;
   text-transform: uppercase;
 }
 

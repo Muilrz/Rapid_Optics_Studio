@@ -68,7 +68,8 @@ describe('Studio state boundaries', () => {
     const state = createStudioStore().getState()
     const serializedScene = JSON.stringify(state.authoritative.scene)
 
-    expect(state.editor.selectedComponentId).toBeNull()
+    expect(state.editor.selectedComponentIds).toEqual([])
+    expect(state.editor.primaryComponentId).toBeNull()
     expect('trace' in state.authoritative).toBe(false)
     expect('setTrace' in state).toBe(false)
     expect(serializedScene).not.toContain('selectedComponentIds')
@@ -89,13 +90,14 @@ describe('Studio state boundaries', () => {
     if (!mirror || !sample) return
 
     initial.setSelection(mirror.id)
-    expect(store.getState().editor.selectedComponentId).toBe(mirror.id)
+    expect(store.getState().editor.primaryComponentId).toBe(mirror.id)
     store.getState().setSelection(sample.id)
-    expect(store.getState().editor.selectedComponentId).toBe(sample.id)
+    expect(store.getState().editor.primaryComponentId).toBe(sample.id)
     store.getState().setSelection(null)
 
     const final = store.getState()
-    expect(final.editor.selectedComponentId).toBeNull()
+    expect(final.editor.primaryComponentId).toBeNull()
+    expect(final.editor.selectedComponentIds).toEqual([])
     expect(final.authoritative.scene).toBe(initial.authoritative.scene)
     expect(final.authoritative.revision).toBe(0)
     expect(final.derived.trace).toBe(initial.derived.trace)
@@ -204,7 +206,7 @@ describe('Studio state boundaries', () => {
     const changedMirror = store
       .getState()
       .authoritative.scene.components.find(({ id }) => id === mirror.id)
-    expect(store.getState().editor.selectedComponentId).toBe(mirror.id)
+    expect(store.getState().editor.primaryComponentId).toBe(mirror.id)
     expect(changedMirror?.enabled).toBe(false)
     expect(changedMirror?.transform.x_mm).toBe(mirror.transform.x_mm + 1)
   })

@@ -8,10 +8,17 @@ function App() {
   const scene = useStudioStore((state) => state.authoritative.scene)
   const trace = useStudioStore((state) => state.derived.trace)
   const snapEnabled = useStudioStore((state) => state.editor.snapEnabled)
+  const selectedCount = useStudioStore(
+    (state) => state.editor.selectedComponentIds.length,
+  )
+  const undoLabel = useStudioStore((state) => state.history.past.at(-1)?.label)
+  const redoLabel = useStudioStore((state) => state.history.future.at(-1)?.label)
   const gridVisible = useStudioStore((state) => state.view.gridVisible)
   const setGridVisible = useStudioStore((state) => state.setGridVisible)
   const setSnapEnabled = useStudioStore((state) => state.setSnapEnabled)
   const resetView = useStudioStore((state) => state.resetView)
+  const undo = useStudioStore((state) => state.undo)
+  const redo = useStudioStore((state) => state.redo)
   const detected = trace.events.some(
     (event) => event.kind === 'termination' && event.reason === 'detected',
   )
@@ -29,6 +36,26 @@ function App() {
         </div>
 
         <div className="toolbar-actions" aria-label="Studio controls">
+          <button
+            type="button"
+            className="toolbar-button"
+            disabled={!undoLabel}
+            title={undoLabel ? `Undo ${undoLabel}` : 'Nothing to undo'}
+            onClick={undo}
+          >
+            <span className="button-icon" aria-hidden="true">↶</span>
+            Undo
+          </button>
+          <button
+            type="button"
+            className="toolbar-button"
+            disabled={!redoLabel}
+            title={redoLabel ? `Redo ${redoLabel}` : 'Nothing to redo'}
+            onClick={redo}
+          >
+            <span className="button-icon" aria-hidden="true">↷</span>
+            Redo
+          </button>
           <button
             type="button"
             className="toolbar-button"
@@ -93,6 +120,7 @@ function App() {
           <OpticalBench />
           <footer className="bench-statusbar">
             <span>{scene.components.length} components</span>
+            <span>{selectedCount} selected</span>
             <span>{trace.rays.length} rays</span>
             <span>{trace.segments.length} segments</span>
             <span>Grid {pitch_mm} mm</span>
