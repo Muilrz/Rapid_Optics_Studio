@@ -42,6 +42,13 @@ describe('Phase 1D formal default Raman scene regression', () => {
       'filter-transmission',
       'terminal-detection',
     ])
+    expect(first.segments).toHaveLength(9)
+    expect(first.events).toHaveLength(11)
+    expect(
+      first.segments
+        .filter((segment) => segment.hitComponentId !== null)
+        .map((segment) => segment.hitComponentId),
+    ).toEqual(interactions.map((event) => event.componentId))
     expect(
       interactions.filter((event) => event.componentType === 'objective'),
     ).toHaveLength(2)
@@ -74,6 +81,21 @@ describe('Phase 1D formal default Raman scene regression', () => {
       0, 1, 2, 3, 4, 5, 6, 7,
     ])
     expect(mainPathRays[4]?.kind).toBe('sample-return-placeholder')
+
+    const excitationDichroic = interactions.find(
+      (event) =>
+        event.componentType === 'dichroic' &&
+        event.rayId === 'ray:000002',
+    )!
+    expect(excitationDichroic.outgoingRayIds).toEqual([
+      'ray:000003',
+      'ray:000004',
+    ])
+    expect(
+      first.rays
+        .filter((ray) => excitationDichroic.outgoingRayIds.includes(ray.rayId))
+        .map((ray) => ray.parentRayId),
+    ).toEqual(['ray:000002', 'ray:000002'])
 
     const returnedRay = first.rays.find((ray) => ray.rayId === 'ray:000006')
     expect(returnedRay?.focusMetadata).toMatchObject({
