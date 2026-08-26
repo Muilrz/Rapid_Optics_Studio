@@ -1,7 +1,11 @@
 import { z } from 'zod'
 import { BreadboardIdSchema, Vec2Schema } from './primitives'
 import { OpticalComponentSchema } from './components'
-import { MillimetersSchema, PositiveMillimetersSchema } from './units'
+import {
+  MillimetersSchema,
+  NonNegativeMilliwattsSchema,
+  PositiveMillimetersSchema,
+} from './units'
 
 export const BreadboardSchema = z
   .object({
@@ -40,10 +44,11 @@ export type OpticalScene = z.infer<typeof OpticalSceneSchema>
 export const SimulationConfigurationSchema = z
   .object({
     model_version: z.literal('optics-v1'),
-    min_ray_power: z.number().finite().positive().max(1),
+    min_ray_power_mw: NonNegativeMilliwattsSchema,
     max_generations: z.number().int().min(1).max(256),
     max_rays: z.number().int().min(1).max(100_000),
     scene_escape_distance_mm: MillimetersSchema.positive(),
+    ray_origin_offset_mm: MillimetersSchema.positive(),
   })
   .strict()
 export type SimulationConfiguration = z.infer<

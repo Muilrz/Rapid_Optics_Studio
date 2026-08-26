@@ -136,8 +136,9 @@ export const DEFAULT_RAMAN_SCENE = OpticalSceneSchema.parse({
 export const DEFAULT_SIMULATION_CONFIGURATION =
   SimulationConfigurationSchema.parse({
     model_version: 'optics-v1',
-    min_ray_power: 0.00001,
+    min_ray_power_mw: 0.00001,
     max_generations: 16,
     max_rays: 1_000,
     scene_escape_distance_mm: 2_000,
+    ray_origin_offset_mm: 0.000001,
   })

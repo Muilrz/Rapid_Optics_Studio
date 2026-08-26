@@ -3,6 +3,7 @@ import {
   OPTICAL_UNIT_CONVENTION,
   OpticalComponentSchema,
   OpticalSceneSchema,
+  SimulationConfigurationSchema,
   Transform2DSchema,
 } from '../src/core/optics'
 import { LASER_WAVELENGTH_PRESETS } from '../src/project/defaults/laserPresets'
@@ -182,6 +183,25 @@ describe('Phase 1A scene data', () => {
   it('provides a validated minimal simulation configuration', () => {
     expect(DEFAULT_SIMULATION_CONFIGURATION.model_version).toBe('optics-v1')
     expect(DEFAULT_SIMULATION_CONFIGURATION.max_generations).toBe(16)
+    expect(DEFAULT_SIMULATION_CONFIGURATION.min_ray_power_mw).toBe(0.00001)
+    expect(DEFAULT_SIMULATION_CONFIGURATION.ray_origin_offset_mm).toBe(
+      0.000001,
+    )
+  })
+
+  it('rejects invalid tracer power thresholds and origin offsets', () => {
+    expect(() =>
+      SimulationConfigurationSchema.parse({
+        ...DEFAULT_SIMULATION_CONFIGURATION,
+        min_ray_power_mw: -1,
+      }),
+    ).toThrow()
+    expect(() =>
+      SimulationConfigurationSchema.parse({
+        ...DEFAULT_SIMULATION_CONFIGURATION,
+        ray_origin_offset_mm: 0,
+      }),
+    ).toThrow()
   })
 
   it('provides the three required laser wavelength presets', () => {

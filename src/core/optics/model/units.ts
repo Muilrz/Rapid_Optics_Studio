@@ -36,6 +36,14 @@ export const MilliwattsSchema = finiteNumber
   .brand<'Milliwatts'>()
 export type Milliwatts = z.infer<typeof MilliwattsSchema>
 
+export const NonNegativeMilliwattsSchema = finiteNumber
+  .nonnegative('Power threshold must not be negative.')
+  .max(1_000_000, 'Power threshold exceeds the supported V1 range.')
+  .brand<'NonNegativeMilliwatts'>()
+export type NonNegativeMilliwatts = z.infer<
+  typeof NonNegativeMilliwattsSchema
+>
+
 export const UnitIntervalSchema = finiteNumber
   .min(0)
   .max(1)
