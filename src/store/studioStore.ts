@@ -28,13 +28,19 @@ import {
   EMPTY_STUDIO_SELECTION,
   reconcileSelection,
   updateSelection,
+  updateSelectionSet,
+  unlockedSelectedComponents,
   type SelectionMode,
   type StudioSelection,
 } from '../features/studio/editorSelection'
 import { getSceneWorldBounds } from '../features/studio/sceneBounds'
 import {
   COMPONENT_EDITABILITY_POLICY,
+  createAlignmentUpdates,
+  createDistributionUpdates,
   normalizeEditorAngleDeg,
+  type StudioAlignment,
+  type StudioDistribution,
 } from '../features/studio/editorMath'
 import {
   createComponentIdAllocator,
@@ -63,6 +69,10 @@ export interface StudioClipboard {
 export interface StudioEditorState extends StudioSelection {
   readonly snapEnabled: boolean
   readonly clipboard: StudioClipboard | null
+  /** Editor-only lock policy; never changes optical physics or project schema. */
+  readonly lockedComponentIds: readonly ComponentId[]
+  /** Changes only for an authoritative whole-scene replacement. */
+  readonly sceneReplacementRevision: number
 }
 
 export interface StudioViewState {
@@ -107,7 +117,12 @@ export interface StudioState {
   readonly history: StudioHistoryState
   readonly replaceScene: (scene: OpticalScene) => void
   readonly setSelection: (componentId: ComponentId | null, mode?: SelectionMode) => void
+  readonly setSelectionIds: (componentIds: readonly ComponentId[], mode?: SelectionMode) => void
   readonly setSnapEnabled: (enabled: boolean) => void
+  readonly setComponentLocked: (componentId: ComponentId, locked: boolean) => boolean
+  readonly setSelectedComponentsLocked: (locked: boolean) => boolean
+  readonly alignSelectedComponents: (alignment: StudioAlignment) => boolean
+  readonly distributeSelectedComponents: (axis: StudioDistribution) => boolean
   readonly addComponent: (type: OpticalComponentType, position_mm: Vec2) => ComponentId
   readonly deleteComponent: (componentId: ComponentId) => boolean
   readonly deleteSelectedComponents: () => boolean
@@ -168,6 +183,33 @@ const editorWithSelection = (
     primaryComponentId: selection.primaryComponentId,
   })
 
+const sceneOrderedLockedIds = (
+  scene: OpticalScene,
+  lockedComponentIds: readonly ComponentId[],
+): readonly ComponentId[] => {
+  const locked = new Set(lockedComponentIds)
+  return Object.freeze(
+    scene.components.filter(({ id }) => locked.has(id)).map(({ id }) => id),
+  )
+}
+
+const reconcileEditorWithScene = (
+  editor: StudioEditorState,
+  scene: OpticalScene,
+): StudioEditorState => {
+  const selection = reconcileSelection(
+    scene,
+    editor.selectedComponentIds,
+    editor.primaryComponentId,
+  )
+  return Object.freeze({
+    ...editor,
+    selectedComponentIds: selection.selectedComponentIds,
+    primaryComponentId: selection.primaryComponentId,
+    lockedComponentIds: sceneOrderedLockedIds(scene, editor.lockedComponentIds),
+  })
+}
+
 const appendBounded = (
   entries: readonly StudioHistoryEntry[],
   entry: StudioHistoryEntry,
@@ -227,18 +269,13 @@ export const createStudioStore = (
     ) => {
       idAllocator.observe(nextScene)
       const revision = current.authoritative.revision + 1
-      const selection = reconcileSelection(
-        nextScene,
-        current.editor.selectedComponentIds,
-        current.editor.primaryComponentId,
-      )
       set({
         authoritative: Object.freeze({ ...current.authoritative, scene: nextScene, revision }),
         derived: Object.freeze({
           trace: traceOpticalScene(nextScene, current.authoritative.simulationConfiguration),
           sceneRevision: revision,
         }),
-        editor: editorWithSelection(current.editor, selection),
+        editor: reconcileEditorWithScene(current.editor, nextScene),
         history,
       })
     }
@@ -250,12 +287,62 @@ export const createStudioStore = (
       label: string,
     ) => {
       const current = get()
+      if (current.editor.lockedComponentIds.includes(componentId)) {
+        throw new RangeError(`Component is locked: ${componentId}`)
+      }
       const componentIndex = current.authoritative.scene.components.findIndex(({ id }) => id === componentId)
       if (componentIndex < 0) throw new RangeError(`Unknown component ID: ${componentId}`)
       const components = current.authoritative.scene.components.map((candidate, index) =>
         index === componentIndex ? replacement : candidate,
       )
       commitScene(current, { ...current.authoritative.scene, components }, retrace, label)
+    }
+
+    const commitTransformCommand = (
+      current: StudioState,
+      updates: readonly ComponentTransformUpdate[],
+      label: string,
+    ): boolean => {
+      if (updates.length === 0) return false
+      const updateIds = new Set<ComponentId>()
+      const validated = new Map<ComponentId, Transform2D>()
+      const locked = new Set(current.editor.lockedComponentIds)
+      for (const update of updates) {
+        if (updateIds.has(update.componentId)) {
+          throw new RangeError(`Duplicate transform update: ${update.componentId}`)
+        }
+        updateIds.add(update.componentId)
+        const component = current.authoritative.scene.components.find(({ id }) => id === update.componentId)
+        if (!component) throw new RangeError(`Unknown component ID: ${update.componentId}`)
+        if (locked.has(update.componentId)) {
+          throw new RangeError(`Component is locked: ${update.componentId}`)
+        }
+        if (!COMPONENT_EDITABILITY_POLICY[component.type].movable) {
+          throw new RangeError(`Component is not transform-editable: ${update.componentId}`)
+        }
+        validated.set(
+          update.componentId,
+          Transform2DSchema.parse({
+            ...update.transform,
+            rotation_deg: normalizeEditorAngleDeg(update.transform.rotation_deg),
+          }),
+        )
+      }
+      let changed = false
+      const components = current.authoritative.scene.components.map((component) => {
+        const transform = validated.get(component.id)
+        if (!transform) return component
+        if (
+          component.transform.x_mm === transform.x_mm &&
+          component.transform.y_mm === transform.y_mm &&
+          component.transform.rotation_deg === transform.rotation_deg
+        ) return component
+        changed = true
+        return { ...component, transform } as OpticalComponent
+      })
+      if (!changed) return false
+      commitScene(current, { ...current.authoritative.scene, components }, true, label)
+      return true
     }
 
     const copyComponentsIntoScene = (
@@ -297,7 +384,13 @@ export const createStudioStore = (
 
     return {
       authoritative: Object.freeze({ scene, simulationConfiguration: validatedConfiguration, revision: 0 }),
-      editor: Object.freeze({ ...EMPTY_STUDIO_SELECTION, snapEnabled: true, clipboard: null }),
+      editor: Object.freeze({
+        ...EMPTY_STUDIO_SELECTION,
+        snapEnabled: true,
+        clipboard: null,
+        lockedComponentIds: Object.freeze([]),
+        sceneReplacementRevision: 0,
+      }),
       view: Object.freeze({
         camera: initialCamera,
         viewport: INITIAL_VIEWPORT,
@@ -314,18 +407,16 @@ export const createStudioStore = (
         const current = get()
         const revision = current.authoritative.revision + 1
         idAllocator.observe(validatedScene)
-        const selection = reconcileSelection(
-          validatedScene,
-          current.editor.selectedComponentIds,
-          current.editor.primaryComponentId,
-        )
         set({
           authoritative: Object.freeze({ ...current.authoritative, scene: validatedScene, revision }),
           derived: Object.freeze({
             trace: traceOpticalScene(validatedScene, current.authoritative.simulationConfiguration),
             sceneRevision: revision,
           }),
-          editor: editorWithSelection(current.editor, selection),
+          editor: Object.freeze({
+            ...reconcileEditorWithScene(current.editor, validatedScene),
+            sceneReplacementRevision: current.editor.sceneReplacementRevision + 1,
+          }),
           history: EMPTY_HISTORY,
         })
       },
@@ -339,8 +430,81 @@ export const createStudioStore = (
         )
         set({ editor: editorWithSelection(current.editor, selection) })
       },
+      setSelectionIds: (componentIds, mode = 'replace') => {
+        const current = get()
+        const selection = updateSelectionSet(
+          current.authoritative.scene,
+          current.editor,
+          componentIds,
+          mode,
+        )
+        set({ editor: editorWithSelection(current.editor, selection) })
+      },
       setSnapEnabled: (snapEnabled) =>
         set((state) => ({ editor: Object.freeze({ ...state.editor, snapEnabled }) })),
+      setComponentLocked: (componentId, locked) => {
+        const current = get()
+        if (!current.authoritative.scene.components.some(({ id }) => id === componentId)) {
+          throw new RangeError(`Unknown component ID: ${componentId}`)
+        }
+        const ids = new Set(current.editor.lockedComponentIds)
+        const changed = locked ? !ids.has(componentId) : ids.has(componentId)
+        if (!changed) return false
+        if (locked) ids.add(componentId)
+        else ids.delete(componentId)
+        set({
+          editor: Object.freeze({
+            ...current.editor,
+            lockedComponentIds: sceneOrderedLockedIds(current.authoritative.scene, [...ids]),
+          }),
+        })
+        return true
+      },
+      setSelectedComponentsLocked: (locked) => {
+        const current = get()
+        if (current.editor.selectedComponentIds.length === 0) return false
+        const ids = new Set(current.editor.lockedComponentIds)
+        let changed = false
+        for (const id of current.editor.selectedComponentIds) {
+          if (locked ? !ids.has(id) : ids.has(id)) changed = true
+          if (locked) ids.add(id)
+          else ids.delete(id)
+        }
+        if (!changed) return false
+        set({
+          editor: Object.freeze({
+            ...current.editor,
+            lockedComponentIds: sceneOrderedLockedIds(current.authoritative.scene, [...ids]),
+          }),
+        })
+        return true
+      },
+      alignSelectedComponents: (alignment) => {
+        const current = get()
+        const eligible = unlockedSelectedComponents(
+          current.authoritative.scene,
+          current.editor.selectedComponentIds,
+          current.editor.lockedComponentIds,
+        )
+        const updates = createAlignmentUpdates(eligible, alignment).map(({ id, transform }) => ({
+          componentId: id as ComponentId,
+          transform,
+        }))
+        return commitTransformCommand(current, updates, `Align ${alignment}`)
+      },
+      distributeSelectedComponents: (axis) => {
+        const current = get()
+        const eligible = unlockedSelectedComponents(
+          current.authoritative.scene,
+          current.editor.selectedComponentIds,
+          current.editor.lockedComponentIds,
+        )
+        const updates = createDistributionUpdates(eligible, axis).map(({ id, transform }) => ({
+          componentId: id as ComponentId,
+          transform,
+        }))
+        return commitTransformCommand(current, updates, `Distribute ${axis}`)
+      },
       addComponent: (type, position_mm) => {
         const current = get()
         const id = idAllocator.next(current.authoritative.scene)
@@ -364,6 +528,7 @@ export const createStudioStore = (
       deleteComponent: (componentId) => {
         const current = get()
         if (!current.authoritative.scene.components.some(({ id }) => id === componentId)) return false
+        if (current.editor.lockedComponentIds.includes(componentId)) return false
         const nextScene: OpticalScene = {
           ...current.authoritative.scene,
           components: current.authoritative.scene.components.filter(({ id }) => id !== componentId),
@@ -385,17 +550,26 @@ export const createStudioStore = (
       deleteSelectedComponents: () => {
         const current = get()
         if (current.editor.selectedComponentIds.length === 0) return false
-        const selected = new Set(current.editor.selectedComponentIds)
+        const locked = new Set(current.editor.lockedComponentIds)
+        const selected = new Set(
+          current.editor.selectedComponentIds.filter((id) => !locked.has(id)),
+        )
+        if (selected.size === 0) return false
         const nextScene: OpticalScene = {
           ...current.authoritative.scene,
           components: current.authoritative.scene.components.filter(({ id }) => !selected.has(id)),
         }
+        const selection = reconcileSelection(
+          nextScene,
+          current.editor.selectedComponentIds,
+          current.editor.primaryComponentId,
+        )
         commitScene(
           current,
           nextScene,
           true,
-          current.editor.selectedComponentIds.length === 1 ? 'Delete component' : 'Delete components',
-          editorWithSelection(current.editor, EMPTY_STUDIO_SELECTION),
+          selected.size === 1 ? 'Delete component' : 'Delete components',
+          editorWithSelection(current.editor, selection),
         )
         return true
       },
@@ -531,45 +705,10 @@ export const createStudioStore = (
         get().updateComponentTransforms([{ componentId, transform }])
       },
       updateComponentTransforms: (updates) => {
-        if (updates.length === 0) return
         const current = get()
-        const updateIds = new Set<ComponentId>()
-        const validated = new Map<ComponentId, Transform2D>()
-        for (const update of updates) {
-          if (updateIds.has(update.componentId)) {
-            throw new RangeError(`Duplicate transform update: ${update.componentId}`)
-          }
-          updateIds.add(update.componentId)
-          const component = current.authoritative.scene.components.find(({ id }) => id === update.componentId)
-          if (!component) throw new RangeError(`Unknown component ID: ${update.componentId}`)
-          if (!COMPONENT_EDITABILITY_POLICY[component.type].movable) {
-            throw new RangeError(`Component is not transform-editable: ${update.componentId}`)
-          }
-          validated.set(
-            update.componentId,
-            Transform2DSchema.parse({
-              ...update.transform,
-              rotation_deg: normalizeEditorAngleDeg(update.transform.rotation_deg),
-            }),
-          )
-        }
-        let changed = false
-        const components = current.authoritative.scene.components.map((component) => {
-          const transform = validated.get(component.id)
-          if (!transform) return component
-          if (
-            component.transform.x_mm === transform.x_mm &&
-            component.transform.y_mm === transform.y_mm &&
-            component.transform.rotation_deg === transform.rotation_deg
-          ) return component
-          changed = true
-          return { ...component, transform } as OpticalComponent
-        })
-        if (!changed) return
-        commitScene(
+        commitTransformCommand(
           current,
-          { ...current.authoritative.scene, components },
-          true,
+          updates,
           updates.length === 1 ? 'Move component' : 'Move components',
         )
       },

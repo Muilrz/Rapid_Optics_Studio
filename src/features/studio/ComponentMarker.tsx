@@ -3,6 +3,7 @@ import type { OpticalComponent } from '../../core/optics'
 import { worldToScreen, type Camera2D, type ViewportSize } from './camera'
 import { COMPONENT_RENDER_REGISTRY } from './componentRenderRegistry'
 import { COMPONENT_EDITABILITY_POLICY } from './editorMath'
+import { COMPONENT_PRESENTATION_HIT_RADIUS_PX } from './boxSelection'
 
 interface ComponentMarkerProps {
   readonly component: OpticalComponent
@@ -11,6 +12,7 @@ interface ComponentMarkerProps {
   readonly selected?: boolean
   readonly primary?: boolean
   readonly showRotationHandle?: boolean
+  readonly locked?: boolean
   readonly onMovePointerDown?: (
     component: OpticalComponent,
     event: ReactPointerEvent<SVGCircleElement>,
@@ -28,6 +30,7 @@ export function ComponentMarker({
   selected = false,
   primary = false,
   showRotationHandle = false,
+  locked = false,
   onMovePointerDown,
   onRotatePointerDown,
 }: ComponentMarkerProps) {
@@ -55,7 +58,7 @@ export function ComponentMarker({
 
   return (
     <g
-      className={`component-marker component-marker--${component.type}${component.enabled ? '' : ' component-marker--disabled'}${selected ? ' component-marker--selected' : ''}${primary ? ' component-marker--primary' : ''}`}
+      className={`component-marker component-marker--${component.type}${component.enabled ? '' : ' component-marker--disabled'}${selected ? ' component-marker--selected' : ''}${primary ? ' component-marker--primary' : ''}${locked ? ' component-marker--locked' : ''}`}
       transform={`translate(${point.x_px} ${point.y_px})`}
       data-component-id={component.id}
       data-component-type={component.type}
@@ -64,6 +67,7 @@ export function ComponentMarker({
       data-world-rotation-deg={component.transform.rotation_deg}
       data-selected={selected}
       data-primary={primary}
+      data-locked={locked}
       aria-label={`${renderer.label}: ${component.name}`}
       style={{ color: renderer.accent }}
     >
@@ -86,11 +90,16 @@ export function ComponentMarker({
         <circle
           className="component-hit-target"
           data-component-hit-target={component.id}
-          r={Math.max(24, selectionRadius_px)}
+          r={COMPONENT_PRESENTATION_HIT_RADIUS_PX}
           onPointerDown={(event) => onMovePointerDown?.(component, event)}
         />
       )}
-      {showRotationHandle && editability.rotatable && (
+      {locked && (
+        <text className="component-lock-badge" x={selectionRadius_px - 3} y={-selectionRadius_px + 4}>
+          🔒
+        </text>
+      )}
+      {showRotationHandle && editability.rotatable && !locked && (
         <g
           className="rotation-control"
           transform={`rotate(${-component.transform.rotation_deg})`}

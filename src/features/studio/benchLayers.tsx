@@ -161,6 +161,7 @@ interface ComponentLayerProps extends LayerViewProps {
   readonly components: OpticalScene['components']
   readonly selectedComponentIds?: readonly string[]
   readonly primaryComponentId?: string | null
+  readonly lockedComponentIds?: readonly string[]
   readonly onMovePointerDown?: (
     component: OpticalScene['components'][number],
     event: ReactPointerEvent<SVGCircleElement>,
@@ -177,6 +178,7 @@ export function ComponentLayer({
   viewport,
   selectedComponentIds = [],
   primaryComponentId = null,
+  lockedComponentIds = [],
   onMovePointerDown,
   onRotatePointerDown,
 }: ComponentLayerProps) {
@@ -190,6 +192,7 @@ export function ComponentLayer({
           viewport={viewport}
           selected={selectedComponentIds.includes(component.id)}
           primary={component.id === primaryComponentId}
+          locked={lockedComponentIds.includes(component.id)}
           showRotationHandle={
             selectedComponentIds.length === 1 &&
             component.id === primaryComponentId

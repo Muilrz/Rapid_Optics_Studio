@@ -1,6 +1,6 @@
-import type { ComponentId, OpticalScene } from '../../core/optics'
+import type { ComponentId, OpticalComponent, OpticalScene } from '../../core/optics'
 
-export type SelectionMode = 'replace' | 'toggle'
+export type SelectionMode = 'replace' | 'add' | 'toggle'
 
 export interface StudioSelection {
   readonly selectedComponentIds: readonly ComponentId[]
@@ -56,6 +56,10 @@ export const updateSelection = (
     })
   }
 
+  if (mode === 'add') {
+    return updateSelectionSet(scene, current, [componentId], mode)
+  }
+
   const ids = new Set(current.selectedComponentIds)
   const removing = ids.delete(componentId)
   if (!removing) ids.add(componentId)
@@ -66,4 +70,55 @@ export const updateSelection = (
       : current.primaryComponentId
     : componentId
   return Object.freeze({ selectedComponentIds: ordered, primaryComponentId: primary })
+}
+
+/**
+ * Applies a deterministic scene-ordered selection update for marquee and other
+ * multi-target selection gestures. The last scene-ordered added hit becomes
+ * primary; removing hits never leaves a stale primary ID.
+ */
+export const updateSelectionSet = (
+  scene: OpticalScene,
+  current: StudioSelection,
+  componentIds: readonly ComponentId[],
+  mode: SelectionMode,
+): StudioSelection => {
+  const hits = sceneOrderedIds(scene, new Set(componentIds))
+  if (mode === 'replace') {
+    return Object.freeze({
+      selectedComponentIds: hits,
+      primaryComponentId: hits.at(-1) ?? null,
+    })
+  }
+
+  const ids = new Set(current.selectedComponentIds)
+  if (mode === 'add') {
+    for (const id of hits) ids.add(id)
+  } else {
+    for (const id of hits) {
+      if (!ids.delete(id)) ids.add(id)
+    }
+  }
+
+  const ordered = sceneOrderedIds(scene, ids)
+  const lastAddedHit = [...hits].reverse().find((id) => ids.has(id))
+  const primary =
+    lastAddedHit ??
+    (current.primaryComponentId && ids.has(current.primaryComponentId)
+      ? current.primaryComponentId
+      : (ordered.at(-1) ?? null))
+  return Object.freeze({ selectedComponentIds: ordered, primaryComponentId: primary })
+}
+
+/** Shared mixed-lock policy: locked members stay selected but are ineligible to move. */
+export const unlockedSelectedComponents = (
+  scene: OpticalScene,
+  selectedComponentIds: readonly ComponentId[],
+  lockedComponentIds: readonly ComponentId[],
+): readonly OpticalComponent[] => {
+  const selected = new Set(selectedComponentIds)
+  const locked = new Set(lockedComponentIds)
+  return Object.freeze(
+    scene.components.filter(({ id }) => selected.has(id) && !locked.has(id)),
+  )
 }

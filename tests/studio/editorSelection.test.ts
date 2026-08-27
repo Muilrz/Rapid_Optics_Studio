@@ -34,4 +34,23 @@ describe('Studio multi-selection contract', () => {
       primaryComponentId: sample.id,
     })
   })
+
+  it('preserves selection identity and a valid primary across component reorder', () => {
+    if (!laser || !mirror || !sample) throw new Error('Fixture is incomplete.')
+    const reordered = {
+      ...DEFAULT_RAMAN_SCENE,
+      components: [...DEFAULT_RAMAN_SCENE.components].reverse(),
+    }
+    const selection = reconcileSelection(
+      reordered,
+      [laser.id, mirror.id, sample.id],
+      mirror.id,
+    )
+
+    expect(new Set(selection.selectedComponentIds)).toEqual(
+      new Set([laser.id, mirror.id, sample.id]),
+    )
+    expect(selection.primaryComponentId).toBe(mirror.id)
+    expect(selection.selectedComponentIds).toContain(selection.primaryComponentId)
+  })
 })

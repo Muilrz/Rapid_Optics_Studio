@@ -17,6 +17,7 @@ interface DraftFieldProps {
   readonly unit?: string
   readonly numeric?: boolean
   readonly step?: number
+  readonly readOnly?: boolean
   readonly onCommit: (value: string) => void
 }
 
@@ -27,12 +28,14 @@ function DraftField({
   unit,
   numeric = false,
   step,
+  readOnly = false,
   onCommit,
 }: DraftFieldProps) {
   const [draft, setDraft] = useState(value)
   const [error, setError] = useState<string | null>(null)
 
   const commit = () => {
+    if (readOnly) return
     try {
       onCommit(draft)
       setError(null)
@@ -69,6 +72,7 @@ function DraftField({
           onBlur={commit}
           onKeyDown={handleKeyDown}
           step={step}
+          disabled={readOnly}
         />
         {unit && <span className="inspector-input-unit">{unit}</span>}
       </span>
@@ -105,6 +109,10 @@ export function PropertyInspector() {
   const sceneComponents = useStudioStore(
     (state) => state.authoritative.scene.components,
   )
+  const lockedComponentIds = useStudioStore(
+    (state) => state.editor.lockedComponentIds,
+  )
+  const lockedIds = new Set(lockedComponentIds)
   const selected = new Set(selectedComponentIds)
   const selectedComponents = sceneComponents.filter(({ id }) => selected.has(id))
   const component =
@@ -126,6 +134,16 @@ export function PropertyInspector() {
   const deleteSelectedComponents = useStudioStore(
     (state) => state.deleteSelectedComponents,
   )
+  const setComponentLocked = useStudioStore((state) => state.setComponentLocked)
+  const setSelectedComponentsLocked = useStudioStore(
+    (state) => state.setSelectedComponentsLocked,
+  )
+  const alignSelectedComponents = useStudioStore(
+    (state) => state.alignSelectedComponents,
+  )
+  const distributeSelectedComponents = useStudioStore(
+    (state) => state.distributeSelectedComponents,
+  )
 
   if (selectedComponentIds.length === 0 || !primaryComponentId) {
     return (
@@ -145,6 +163,8 @@ export function PropertyInspector() {
   }
 
   if (selectedComponents.length > 1) {
+    const lockedCount = selectedComponents.filter(({ id }) => lockedIds.has(id)).length
+    const eligibleCount = selectedComponents.length - lockedCount
     return (
       <aside
         className="property-inspector"
@@ -156,17 +176,38 @@ export function PropertyInspector() {
             <p className="info-label">Multiple selection</p>
             <h2>{selectedComponents.length} components</h2>
           </div>
-          <button
-            type="button"
-            className="delete-component-button"
-            onClick={deleteSelectedComponents}
-          >
-            Delete all
-          </button>
+          <div className="inspector-header-actions">
+            <button
+              type="button"
+              className="inspector-action-button"
+              onClick={() => setSelectedComponentsLocked(true)}
+              disabled={lockedCount === selectedComponents.length}
+            >
+              Lock all
+            </button>
+            <button
+              type="button"
+              className="inspector-action-button"
+              onClick={() => setSelectedComponentsLocked(false)}
+              disabled={lockedCount === 0}
+            >
+              Unlock all
+            </button>
+            <button
+              type="button"
+              className="delete-component-button"
+              onClick={deleteSelectedComponents}
+              disabled={eligibleCount === 0}
+            >
+              Delete unlocked
+            </button>
+          </div>
         </div>
         <section className="inspector-section inspector-selection-summary">
           <h3>Selection summary</h3>
-          <p>Drag any selected component to move the group while preserving relative layout.</p>
+          <p>
+            {selectedComponents.length} selected · {lockedCount} locked · {eligibleCount} editable
+          </p>
           <ul>
             {selectedComponents.map((selected) => (
               <li
@@ -176,10 +217,55 @@ export function PropertyInspector() {
               >
                 <span>{selected.name}</span>
                 <code>{selected.type}</code>
+                {lockedIds.has(selected.id) && <em>Locked</em>}
                 {selected.id === primaryComponentId && <em>Primary</em>}
               </li>
             ))}
           </ul>
+        </section>
+        <section className="inspector-section inspector-selection-tools">
+          <h3>Align centers · world mm</h3>
+          <div className="selection-tool-grid">
+            {(
+              [
+                ['left', 'Left'],
+                ['right', 'Right'],
+                ['top', 'Top'],
+                ['bottom', 'Bottom'],
+                ['horizontal-center', 'H Center'],
+                ['vertical-center', 'V Center'],
+              ] as const
+            ).map(([alignment, label]) => (
+              <button
+                type="button"
+                key={alignment}
+                onClick={() => alignSelectedComponents(alignment)}
+                disabled={eligibleCount < 2}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <h3>Distribute centers · world mm</h3>
+          <div className="selection-tool-grid selection-tool-grid--distribution">
+            <button
+              type="button"
+              onClick={() => distributeSelectedComponents('horizontal')}
+              disabled={eligibleCount < 3}
+            >
+              Horizontal
+            </button>
+            <button
+              type="button"
+              onClick={() => distributeSelectedComponents('vertical')}
+              disabled={eligibleCount < 3}
+            >
+              Vertical
+            </button>
+          </div>
+          {lockedCount > 0 && (
+            <p className="inspector-tool-note">Locked components remain selected and stationary.</p>
+          )}
         </section>
       </aside>
     )
@@ -188,6 +274,7 @@ export function PropertyInspector() {
   if (!component) return null
 
   const definition = COMPONENT_DEFINITIONS[component.type]
+  const locked = lockedIds.has(component.id)
   const parameters = asParameterRecord(component.parameters)
   const interaction = [...trace.events].reverse().find(
     (event) =>
@@ -226,19 +313,30 @@ export function PropertyInspector() {
       className="property-inspector"
       aria-label="Property Inspector"
       data-inspector-component-id={component.id}
+      data-inspector-locked={locked}
     >
       <div className="side-panel-header inspector-title-row">
         <div>
           <p className="info-label">{definition.displayName}</p>
           <h2>Property Inspector</h2>
         </div>
-        <button
-          type="button"
-          className="delete-component-button"
-          onClick={() => deleteComponent(component.id)}
-        >
-          Delete
-        </button>
+        <div className="inspector-header-actions">
+          <button
+            type="button"
+            className="inspector-action-button"
+            onClick={() => setComponentLocked(component.id, !locked)}
+          >
+            {locked ? 'Unlock' : 'Lock'}
+          </button>
+          <button
+            type="button"
+            className="delete-component-button"
+            onClick={() => deleteComponent(component.id)}
+            disabled={locked}
+          >
+            Delete
+          </button>
+        </div>
       </div>
 
       <section className="inspector-section">
@@ -248,6 +346,7 @@ export function PropertyInspector() {
           fieldKey="name"
           label="Name"
           value={component.name}
+          readOnly={locked}
           onCommit={(draft) => updateCommon(component.id, { name: draft })}
         />
         <div className="inspector-readonly-row">
@@ -258,12 +357,17 @@ export function PropertyInspector() {
           <span>ID</span>
           <code data-inspector-id>{component.id}</code>
         </div>
+        <div className="inspector-readonly-row">
+          <span>Editor status</span>
+          <code data-inspector-lock-status>{locked ? 'Locked' : 'Unlocked'}</code>
+        </div>
         <label className="inspector-toggle-row">
           <span>Enabled</span>
           <input
             type="checkbox"
             data-field-key="enabled"
             checked={component.enabled}
+            disabled={locked}
             onChange={(event) =>
               updateCommon(component.id, { enabled: event.target.checked })
             }
@@ -287,6 +391,7 @@ export function PropertyInspector() {
             value={String(component.transform[key])}
             unit={unit}
             numeric
+            readOnly={locked}
             step={key === 'rotation_deg' ? 1 : 0.1}
             onCommit={(draft) =>
               updateTransform(
@@ -310,6 +415,7 @@ export function PropertyInspector() {
           value={String(component.geometry.aperture_mm)}
           unit="mm"
           numeric
+          readOnly={locked}
           step={0.1}
           onCommit={(draft) =>
             updateGeometry(component.id, parseFiniteNumericDraft(draft))
@@ -331,6 +437,7 @@ export function PropertyInspector() {
                   value={String(value)}
                   unit={field.unit}
                   numeric
+                  readOnly={locked}
                   step={field.step}
                   onCommit={(draft) =>
                     commitParameter(
@@ -348,6 +455,7 @@ export function PropertyInspector() {
                   fieldKey={field.key}
                   label={field.label}
                   value={value}
+                  readOnly={locked}
                   onCommit={(draft) => commitParameter(field.key, draft)}
                 />
               )
@@ -360,6 +468,7 @@ export function PropertyInspector() {
                     className="inspector-input inspector-select"
                     data-field-key={field.key}
                     value={value}
+                    disabled={locked}
                     onChange={(event) =>
                       field.key === 'leakage_model'
                         ? changeLeakageModel(event.target.value)

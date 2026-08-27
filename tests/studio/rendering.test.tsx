@@ -144,6 +144,28 @@ describe('Studio bench rendering', () => {
     expect(markup).not.toContain('data-rotation-handle=')
   })
 
+  it('renders locked components as selectable without a rotation handle', () => {
+    const mirror = DEFAULT_RAMAN_SCENE.components.find(({ type }) => type === 'mirror')!
+    const markup = renderToStaticMarkup(
+      <svg>
+        <ComponentMarker
+          component={mirror}
+          camera={camera}
+          viewport={viewport}
+          selected
+          primary
+          locked
+          showRotationHandle
+        />
+      </svg>,
+    )
+
+    expect(markup).toContain('component-marker--locked')
+    expect(markup).toContain('data-locked="true"')
+    expect(markup).toContain(`data-component-hit-target="${mirror.id}"`)
+    expect(markup).not.toContain('data-rotation-handle=')
+  })
+
   it('renders every segment of a branching trace without flattening branches', () => {
     const trace = traceOpticalScene(
       createBranchingStressScene(2),

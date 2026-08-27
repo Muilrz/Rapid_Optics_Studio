@@ -1,9 +1,20 @@
 import {
   Transform2DSchema,
+  type OpticalComponent,
   type OpticalComponentType,
   type Transform2D,
   type Vec2,
 } from '../../core/optics'
+
+export type StudioAlignment =
+  | 'left'
+  | 'right'
+  | 'top'
+  | 'bottom'
+  | 'horizontal-center'
+  | 'vertical-center'
+
+export type StudioDistribution = 'horizontal' | 'vertical'
 
 export interface ComponentEditability {
   readonly selectable: boolean
@@ -174,3 +185,68 @@ export const rotateTransformTowardWorldPointer = (
       pointer_mm,
     ),
   })
+
+const coordinateForAlignment = (
+  components: readonly OpticalComponent[],
+  alignment: StudioAlignment,
+): number => {
+  const values = components.map(({ transform }) =>
+    alignment === 'top' || alignment === 'bottom' || alignment === 'vertical-center'
+      ? transform.y_mm
+      : transform.x_mm,
+  )
+  const minimum = Math.min(...values)
+  const maximum = Math.max(...values)
+  if (alignment === 'left' || alignment === 'bottom') return minimum
+  if (alignment === 'right' || alignment === 'top') return maximum
+  return (minimum + maximum) / 2
+}
+
+/** Aligns component centers in formal +Y-up world millimeters. */
+export const createAlignmentUpdates = (
+  components: readonly OpticalComponent[],
+  alignment: StudioAlignment,
+): readonly ComponentTransformUpdate[] => {
+  if (components.length < 2) return Object.freeze([])
+  const target = coordinateForAlignment(components, alignment)
+  const updateX = alignment === 'left' || alignment === 'right' || alignment === 'horizontal-center'
+  return Object.freeze(
+    components.map(({ id, transform }) => ({
+      id,
+      transform: Transform2DSchema.parse({
+        ...transform,
+        x_mm: updateX ? target : transform.x_mm,
+        y_mm: updateX ? transform.y_mm : target,
+      }),
+    })),
+  )
+}
+
+/**
+ * Distributes world-space centers. Coordinate ties use stable IDs, making the
+ * result independent from authoritative component array order.
+ */
+export const createDistributionUpdates = (
+  components: readonly OpticalComponent[],
+  axis: StudioDistribution,
+): readonly ComponentTransformUpdate[] => {
+  if (components.length < 3) return Object.freeze([])
+  const coordinate = (component: OpticalComponent) =>
+    axis === 'horizontal' ? component.transform.x_mm : component.transform.y_mm
+  const ordered = [...components].sort(
+    (left, right) => coordinate(left) - coordinate(right) || left.id.localeCompare(right.id),
+  )
+  const first = coordinate(ordered[0]!)
+  const last = coordinate(ordered.at(-1)!)
+  const spacing = (last - first) / (ordered.length - 1)
+  return Object.freeze(
+    ordered.map(({ id, transform }, index) => ({
+      id,
+      transform: Transform2DSchema.parse({
+        ...transform,
+        x_mm: axis === 'horizontal' ? first + spacing * index : transform.x_mm,
+        y_mm: axis === 'vertical' ? first + spacing * index : transform.y_mm,
+      }),
+    })),
+  )
+}

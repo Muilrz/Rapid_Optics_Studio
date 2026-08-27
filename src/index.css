@@ -332,13 +332,9 @@ button {
   width: 100%;
   height: 100%;
   min-height: inherit;
-  cursor: grab;
+  cursor: crosshair;
   touch-action: none;
   user-select: none;
-}
-
-.optical-bench:active {
-  cursor: grabbing;
 }
 
 .workspace-background {
@@ -494,6 +490,32 @@ button {
   stroke-dasharray: 4 3;
 }
 
+.component-marker--locked .component-hit-target {
+  cursor: default;
+}
+
+.component-marker--locked .component-selection-ring {
+  stroke: #e6b95f;
+}
+
+.component-lock-badge {
+  fill: #f0c66e;
+  font-size: 11px;
+  paint-order: stroke;
+  pointer-events: none;
+  stroke: #080d11;
+  stroke-width: 3px;
+}
+
+.selection-marquee {
+  fill: rgb(82 181 213 / 12%);
+  stroke: #73c8de;
+  stroke-dasharray: 5 3;
+  stroke-width: 1px;
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
+}
+
 .bench-hint {
   position: absolute;
   top: 10px;
@@ -569,6 +591,38 @@ button {
   color: #ffd4d8;
 }
 
+.delete-component-button:disabled,
+.inspector-action-button:disabled,
+.selection-tool-grid button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.inspector-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.inspector-action-button,
+.selection-tool-grid button {
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid #38515d;
+  border-radius: 4px;
+  color: #b8d5de;
+  background: #132028;
+  cursor: pointer;
+  font-size: 0.68rem;
+}
+
+.inspector-action-button:not(:disabled):hover,
+.selection-tool-grid button:not(:disabled):hover {
+  border-color: #6190a2;
+  color: #e2f4f8;
+}
+
 .inspector-empty {
   display: grid;
   place-items: center;
@@ -636,6 +690,27 @@ button {
   font-style: normal;
 }
 
+.inspector-selection-tools {
+  gap: 10px;
+}
+
+.selection-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.selection-tool-grid--distribution {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.inspector-tool-note {
+  margin: 0;
+  color: #b69962;
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
 .inspector-selection-summary em {
   grid-column: 1 / -1;
   color: #8ecfe0;
@@ -679,6 +754,12 @@ button {
 .inspector-input[aria-invalid="true"] {
   border-color: #c96d76;
   background: #1c1114;
+}
+
+.inspector-input:disabled,
+.inspector-toggle-row input:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .inspector-input-unit {

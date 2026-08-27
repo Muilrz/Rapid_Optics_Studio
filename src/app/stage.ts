@@ -1,4 +1,4 @@
 export const CURRENT_PHASE =
-  'Phase 2D — Multi-select + Clipboard + Duplicate + Undo/Redo' as const
+  'Phase 2E — Editor Completion + Integration Hardening' as const
 
 export const PRODUCT_STATUS = 'V1 under development' as const

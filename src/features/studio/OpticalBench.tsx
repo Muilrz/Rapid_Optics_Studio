@@ -2,13 +2,24 @@ import {
   useEffect,
   useLayoutEffect,
   useRef,
+  useState,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from 'react'
 import type { ComponentId, OpticalComponent, Transform2D, Vec2 } from '../../core/optics'
 import { useStudioStore } from '../../store/studioStore'
 import { BreadboardLayer, ComponentLayer, TraceLayer, WorkspaceGrid } from './benchLayers'
+import {
+  backgroundGestureKind,
+  boxSelectionModeFromModifiers,
+  componentsHitByBox,
+  createScreenRect,
+  type ScreenRect,
+} from './boxSelection'
 import { screenToWorld, type ScreenPoint } from './camera'
+import type { SelectionMode } from './editorSelection'
+import { unlockedSelectedComponents } from './editorSelection'
+import { settleStudioGesture } from './gesturePolicy'
 import {
   COMPONENT_EDITABILITY_POLICY,
   moveTransformGroupFromWorldPointers,
@@ -18,6 +29,7 @@ import {
 interface GestureBase {
   readonly pointerId: number
   readonly captureTarget: SVGElement
+  readonly sceneReplacementRevision: number
 }
 
 interface PanGesture extends GestureBase {
@@ -45,7 +57,20 @@ interface RotateGesture extends GestureBase {
   readonly moved: boolean
 }
 
-type ActiveGesture = PanGesture | MoveGesture | RotateGesture
+interface BoxSelectGesture extends GestureBase {
+  readonly kind: 'box-select'
+  readonly start_px: ScreenPoint
+  readonly current_px: ScreenPoint
+  readonly selectionMode: SelectionMode
+}
+
+type ActiveGesture = PanGesture | MoveGesture | RotateGesture | BoxSelectGesture
+
+const releaseGestureCapture = (gesture: ActiveGesture): void => {
+  if (gesture.captureTarget.hasPointerCapture(gesture.pointerId)) {
+    gesture.captureTarget.releasePointerCapture(gesture.pointerId)
+  }
+}
 
 const clientToScreenPoint = (
   clientX: number,
@@ -69,15 +94,22 @@ const hasTextEditingTarget = (target: EventTarget | null): boolean =>
 export function OpticalBench() {
   const containerRef = useRef<HTMLDivElement>(null)
   const activeGesture = useRef<ActiveGesture | null>(null)
+  const spacePressed = useRef(false)
+  const [selectionMarquee, setSelectionMarquee] = useState<ScreenRect | null>(null)
   const scene = useStudioStore((state) => state.authoritative.scene)
   const trace = useStudioStore((state) => state.derived.trace)
   const selectedComponentIds = useStudioStore((state) => state.editor.selectedComponentIds)
   const primaryComponentId = useStudioStore((state) => state.editor.primaryComponentId)
   const snapEnabled = useStudioStore((state) => state.editor.snapEnabled)
+  const lockedComponentIds = useStudioStore((state) => state.editor.lockedComponentIds)
+  const sceneReplacementRevision = useStudioStore(
+    (state) => state.editor.sceneReplacementRevision,
+  )
   const camera = useStudioStore((state) => state.view.camera)
   const viewport = useStudioStore((state) => state.view.viewport)
   const gridVisible = useStudioStore((state) => state.view.gridVisible)
   const setSelection = useStudioStore((state) => state.setSelection)
+  const setSelectionIds = useStudioStore((state) => state.setSelectionIds)
   const updateComponentTransform = useStudioStore((state) => state.updateComponentTransform)
   const updateComponentTransforms = useStudioStore((state) => state.updateComponentTransforms)
   const deleteSelectedComponents = useStudioStore((state) => state.deleteSelectedComponents)
@@ -110,21 +142,22 @@ export function OpticalBench() {
   }, [setViewportSize])
 
   useEffect(() => {
-    const releaseGesture = (gesture: ActiveGesture) => {
-      if (gesture.captureTarget.hasPointerCapture(gesture.pointerId)) {
-        gesture.captureTarget.releasePointerCapture(gesture.pointerId)
-      }
-    }
     const handleKeyDown = (event: KeyboardEvent) => {
       if (hasTextEditingTarget(event.target)) return
+      if (event.code === 'Space') {
+        spacePressed.current = true
+        event.preventDefault()
+      }
       if (event.key === 'Escape') {
         const gesture = activeGesture.current
-        if (gesture?.kind === 'move' || gesture?.kind === 'rotate') {
+        const settlement = settleStudioGesture(gesture?.kind ?? null, 'escape')
+        if (settlement.historyAction === 'cancel') {
           cancelHistoryTransaction()
         }
-        if (gesture) releaseGesture(gesture)
-        activeGesture.current = null
-        setSelection(null)
+        if (gesture) releaseGestureCapture(gesture)
+        activeGesture.current = settlement.nextGesture
+        if (settlement.clearMarquee) setSelectionMarquee(null)
+        if (settlement.clearSelection) setSelection(null)
         return
       }
       if (activeGesture.current) return
@@ -158,8 +191,20 @@ export function OpticalBench() {
         if (deleteSelectedComponents()) event.preventDefault()
       }
     }
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.code === 'Space') spacePressed.current = false
+    }
+    const handleBlur = () => {
+      spacePressed.current = false
+    }
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('blur', handleBlur)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('blur', handleBlur)
+    }
   }, [
     cancelHistoryTransaction,
     copySelection,
@@ -171,6 +216,14 @@ export function OpticalBench() {
     undo,
   ])
 
+  useEffect(() => {
+    const gesture = activeGesture.current
+    if (!gesture || gesture.sceneReplacementRevision === sceneReplacementRevision) return
+    releaseGestureCapture(gesture)
+    activeGesture.current = null
+    setSelectionMarquee(null)
+  }, [sceneReplacementRevision])
+
   const pointerWorld = (clientX: number, clientY: number, svg: SVGSVGElement) =>
     screenToWorld(clientToScreenPoint(clientX, clientY, svg, viewport), camera, viewport)
 
@@ -178,7 +231,7 @@ export function OpticalBench() {
     component: OpticalComponent,
     event: ReactPointerEvent<SVGCircleElement>,
   ) => {
-    if (event.button !== 0) return
+    if (event.button !== 0 || activeGesture.current) return
     event.stopPropagation()
     event.preventDefault()
     const toggle = event.ctrlKey || event.metaKey || event.shiftKey
@@ -189,16 +242,25 @@ export function OpticalBench() {
     } else if (!wasSelected) {
       setSelection(component.id)
     }
+    if (lockedComponentIds.includes(component.id)) return
     if (!COMPONENT_EDITABILITY_POLICY[component.type].movable) return
 
     const svg = event.currentTarget.ownerSVGElement
     if (!svg) return
-    const groupIds = toggle
+    const requestedGroupIds = toggle
       ? [...selectedComponentIds, component.id]
       : wasSelected
         ? selectedComponentIds
         : [component.id]
-    const primary = toggle ? component.id : wasSelected ? primaryComponentId : component.id
+    const groupIds = unlockedSelectedComponents(
+      scene,
+      requestedGroupIds,
+      lockedComponentIds,
+    ).map(({ id }) => id)
+    const primary =
+      primaryComponentId && groupIds.includes(primaryComponentId)
+        ? primaryComponentId
+        : component.id
     if (!primary) return
     const selected = new Set(groupIds)
     const startingTransforms = scene.components
@@ -211,11 +273,12 @@ export function OpticalBench() {
       kind: 'move',
       pointerId: event.pointerId,
       captureTarget: event.currentTarget,
+      sceneReplacementRevision,
       clickedComponentId: component.id,
       primaryComponentId: primary,
       startingTransforms,
       startingPointer_mm: pointerWorld(event.clientX, event.clientY, svg),
-      collapseToClickedOnRelease: !toggle && wasSelected && groupIds.length > 1,
+      collapseToClickedOnRelease: !toggle && wasSelected && requestedGroupIds.length > 1,
       moved: false,
     }
   }
@@ -224,10 +287,13 @@ export function OpticalBench() {
     component: OpticalComponent,
     event: ReactPointerEvent<SVGCircleElement>,
   ) => {
-    if (event.button !== 0 || selectedComponentIds.length !== 1) return
+    if (event.button !== 0 || selectedComponentIds.length !== 1 || activeGesture.current) return
     event.stopPropagation()
     event.preventDefault()
-    if (!COMPONENT_EDITABILITY_POLICY[component.type].rotatable) return
+    if (
+      lockedComponentIds.includes(component.id) ||
+      !COMPONENT_EDITABILITY_POLICY[component.type].rotatable
+    ) return
     const svg = event.currentTarget.ownerSVGElement
     if (!svg) return
     beginHistoryTransaction('Rotate component')
@@ -236,6 +302,7 @@ export function OpticalBench() {
       kind: 'rotate',
       pointerId: event.pointerId,
       captureTarget: event.currentTarget,
+      sceneReplacementRevision,
       componentId: component.id,
       startingTransform: component.transform,
       moved: false,
@@ -243,20 +310,44 @@ export function OpticalBench() {
   }
 
   const handleBackgroundPointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
-    if (event.button !== 0) return
-    setSelection(null)
+    if (activeGesture.current) return
+    const kind = backgroundGestureKind(event.button, spacePressed.current)
+    if (!kind) return
+    event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
+    if (kind === 'pan') {
+      activeGesture.current = {
+        kind,
+        pointerId: event.pointerId,
+        captureTarget: event.currentTarget,
+        sceneReplacementRevision,
+        previousClient: { x: event.clientX, y: event.clientY },
+      }
+      return
+    }
+    const start_px = clientToScreenPoint(event.clientX, event.clientY, event.currentTarget, viewport)
+    const box = createScreenRect(start_px, start_px)
+    setSelectionMarquee(box)
     activeGesture.current = {
-      kind: 'pan',
+      kind,
       pointerId: event.pointerId,
       captureTarget: event.currentTarget,
-      previousClient: { x: event.clientX, y: event.clientY },
+      sceneReplacementRevision,
+      start_px,
+      current_px: start_px,
+      selectionMode: boxSelectionModeFromModifiers(event),
     }
   }
 
   const handlePointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
     const gesture = activeGesture.current
     if (!gesture || gesture.pointerId !== event.pointerId) return
+    if (gesture.sceneReplacementRevision !== sceneReplacementRevision) {
+      releaseGestureCapture(gesture)
+      activeGesture.current = null
+      setSelectionMarquee(null)
+      return
+    }
     if (gesture.kind === 'pan') {
       panView({
         x_px: event.clientX - gesture.previousClient.x,
@@ -266,6 +357,19 @@ export function OpticalBench() {
         ...gesture,
         previousClient: { x: event.clientX, y: event.clientY },
       }
+      return
+    }
+
+    if (gesture.kind === 'box-select') {
+      const current_px = clientToScreenPoint(
+        event.clientX,
+        event.clientY,
+        event.currentTarget,
+        viewport,
+      )
+      const box = createScreenRect(gesture.start_px, current_px)
+      setSelectionMarquee(box)
+      activeGesture.current = { ...gesture, current_px }
       return
     }
 
@@ -309,9 +413,18 @@ export function OpticalBench() {
   const finishGesture = (event: ReactPointerEvent<SVGSVGElement>, cancelled: boolean) => {
     const gesture = activeGesture.current
     if (!gesture || gesture.pointerId !== event.pointerId) return
-    if (gesture.kind === 'move' || gesture.kind === 'rotate') {
-      if (cancelled) cancelHistoryTransaction()
-      else commitHistoryTransaction()
+    const settlement = settleStudioGesture(
+      gesture.kind,
+      cancelled ? 'pointercancel' : 'complete',
+    )
+    if (settlement.historyAction === 'cancel') cancelHistoryTransaction()
+    if (settlement.historyAction === 'commit') commitHistoryTransaction()
+    if (!cancelled && gesture.kind === 'box-select') {
+      const box = createScreenRect(gesture.start_px, gesture.current_px)
+      setSelectionIds(
+        componentsHitByBox(scene, box, camera, viewport),
+        gesture.selectionMode,
+      )
     }
     if (
       !cancelled &&
@@ -321,10 +434,9 @@ export function OpticalBench() {
     ) {
       setSelection(gesture.clickedComponentId)
     }
-    if (gesture.captureTarget.hasPointerCapture(event.pointerId)) {
-      gesture.captureTarget.releasePointerCapture(event.pointerId)
-    }
-    activeGesture.current = null
+    releaseGestureCapture(gesture)
+    activeGesture.current = settlement.nextGesture
+    if (settlement.clearMarquee) setSelectionMarquee(null)
   }
 
   const handleWheel = (event: ReactWheelEvent<SVGSVGElement>) => {
@@ -357,18 +469,29 @@ export function OpticalBench() {
           gridVisible={gridVisible}
         />
         <TraceLayer trace={trace} camera={camera} viewport={viewport} />
+        {selectionMarquee && (
+          <rect
+            className="selection-marquee"
+            data-selection-marquee
+            x={selectionMarquee.min_x_px}
+            y={selectionMarquee.min_y_px}
+            width={selectionMarquee.max_x_px - selectionMarquee.min_x_px}
+            height={selectionMarquee.max_y_px - selectionMarquee.min_y_px}
+          />
+        )}
         <ComponentLayer
           components={scene.components}
           camera={camera}
           viewport={viewport}
           selectedComponentIds={selectedComponentIds}
           primaryComponentId={primaryComponentId}
+          lockedComponentIds={lockedComponentIds}
           onMovePointerDown={startComponentMove}
           onRotatePointerDown={startComponentRotation}
         />
       </svg>
       <div className="bench-hint" aria-hidden="true">
-        Shift/Ctrl click to multi-select · Drag selection to move · Cmd/Ctrl C, V, D · Undo Cmd/Ctrl Z
+        Drag background to box-select · Space/middle drag to pan · Shift adds · Ctrl/Cmd toggles
       </div>
       <div className="camera-readout">{camera.zoom_px_per_mm.toFixed(2)} px/mm</div>
     </div>

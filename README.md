@@ -4,7 +4,7 @@ Rapid Optics Studio is a Raman-first scientific engineering studio for building,
 
 ## Status
 
-V1 under development. The repository has completed **Phase 2D — Multi-select + Clipboard + Duplicate + Undo/Redo**. The millimeter-based 2D Studio now supports deterministic multi-selection with a primary component, anchor-snapped group movement, an ID-free editor clipboard, paste/duplicate with monotonic stable IDs, bounded scene-design undo/redo, multi-delete, single-selection property editing, and real-time Phase 1 tracing. Project I/O, Raman signal physics, CCD simulation, acquisition, and 3D remain future phases.
+V1 under development. The repository has completed **Phase 2E — Editor Completion & Integration Hardening**, satisfying the Phase 2 exit gate. The millimeter-based 2D Studio now supports deterministic click/multi/box selection, camera-safe marquee hit testing, anchor-snapped unlocked group movement, rotate, an ID-free editor clipboard, paste/duplicate with monotonic stable IDs, bounded scene-design undo/redo, editor-only component locking, lock-safe delete and Inspector editing, six center-based align commands, horizontal/vertical distribution, and real-time Phase 1 tracing. Project I/O, Raman signal physics, CCD simulation, acquisition, and 3D remain future phases.
 
 ## Technology
 
@@ -50,15 +50,15 @@ npm run lint
 ## Directory overview
 
 - `src/app`: application bootstrap and app-level concerns.
-- `src/features`: product-facing feature modules; currently contains the 2D Studio camera, deterministic selection/group-move helpers, editability policy, and interactive SVG bench layers.
+- `src/features`: product-facing feature modules; currently contains the 2D Studio camera, deterministic click/box selection and group-move helpers, align/distribution math, editability policy, and interactive SVG bench layers.
 - `src/core`: pure TypeScript scientific computation modules; currently contains the hardened Phase 1 data model, geometry, and 10-component tracing core.
 - `src/project`: product defaults and component definitions/factories; currently owns the formal default Raman scene and ten-type Studio creation registry.
-- `src/store`: Zustand application state composition with separate authoritative, editor clipboard/selection, bounded design history, view, and derived boundaries.
+- `src/store`: Zustand application state composition with separate authoritative, editor clipboard/selection/lock, bounded design history, view, and derived boundaries.
 - `src/types`: stable cross-module application types.
 - `src/utils`: genuinely shared utilities.
 - `tests/fixtures`: reference, regression, stress, and performance fixtures.
 - `tests/regression`: deterministic Optical Core and Demo behavior regressions.
-- `tests/studio`: camera, selection/group-move math, component definitions/factory, clipboard/history, scene mutations, Inspector validation, state-boundary, and interactive bench rendering tests.
+- `tests/studio`: camera, click/box selection and group-move math, lock/align/distribution commands, component definitions/factory, clipboard/history, scene mutations, Inspector validation, state-boundary, and interactive bench rendering tests.
 - `tests/performance`: non-flaky diagnostic Optical Core performance baselines.
 - `reference`: read-only product behavior reference material.
 
