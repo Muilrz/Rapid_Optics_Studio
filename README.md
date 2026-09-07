@@ -4,7 +4,7 @@ Rapid Optics Studio is a Raman-first scientific engineering studio for building,
 
 ## Status
 
-V1 under development. The repository has completed **Phase 3A — Raman Domain Model & Material Foundation**. A pure TypeScript Raman boundary now provides strict material/peak validation, versioned reference provenance, immutable registry/lookup behavior, Sample `material_id` resolution, and foundational spectrum data contracts. The Silicon, Polystyrene, and Calcite reference data from the Raman Sandbox is regression protected. Raman spectrum math, focus coupling, CCD simulation, spectrum UI, acquisition, 3D, and Project I/O remain deferred to their documented later phases.
+V1 under development. The repository has completed **Phase 3B — Deterministic Raman Spectrum Math**. The pure TypeScript Raman core now provides validated material data, shift/wavelength conversion, Lorentzian profiles, configured broadening, versioned simplified wavelength/fluorescence/Rayleigh models, dynamic or custom Raman-shift axes, and immutable deterministic expected Raman-domain spectra. Focus and optical-trace coupling, Virtual CCD behavior, spectrum UI, acquisition, 3D, and Project I/O remain deferred to their documented later phases.
 
 ## Technology
 
@@ -51,7 +51,7 @@ npm run lint
 
 - `src/app`: application bootstrap and app-level concerns.
 - `src/features`: product-facing feature modules; currently contains the 2D Studio camera, deterministic click/box selection and group-move helpers, align/distribution math, editability policy, and interactive SVG bench layers.
-- `src/core`: pure TypeScript scientific computation modules; contains the hardened Phase 1 generic optical core and the separate Phase 3A Raman domain/material foundation.
+- `src/core`: pure TypeScript scientific computation modules; contains the hardened Phase 1 generic optical core and the separate Phase 3B deterministic Raman material/spectrum core.
 - `src/project`: product defaults and component definitions/factories; currently owns the formal default Raman scene and ten-type Studio creation registry.
 - `src/store`: Zustand application state composition with separate authoritative, editor clipboard/selection/lock, bounded design history, view, and derived boundaries.
 - `src/types`: stable cross-module application types.

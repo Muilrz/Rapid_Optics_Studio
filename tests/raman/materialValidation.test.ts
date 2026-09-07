@@ -119,9 +119,17 @@ describe('Phase 3A spectrum contract validation', () => {
   it('keeps expected Raman output semantically distinct and length-matched', () => {
     const expected = ExpectedSpectrumSchema.parse({
       kind: 'expected-raman-spectrum',
+      material_id: 'material:silicon',
+      excitation_wavelength_nm: 532,
       axis,
+      scattered_wavelength_nm: [529.2, 532, 547.2],
       relative_intensity: [0, 0.1, 1],
-      model_version: 'raman-v1',
+      components: {
+        raman: [0, 0.1, 1],
+        fluorescence: [0, 0, 0],
+        rayleigh: [0, 0, 0],
+      },
+      model_version: 'raman-spectrum-v1',
     })
 
     expect(expected.kind).toBe('expected-raman-spectrum')
