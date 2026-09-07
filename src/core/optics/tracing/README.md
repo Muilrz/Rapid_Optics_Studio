@@ -38,7 +38,9 @@ spectroscopy, detector physics, or Phase 1D component interactions.
 - Sample: strict backward elastic placeholder return used only to establish
   the tracer path. It is explicitly not Raman emission or Raman physics.
 - Filter: Raman-placeholder transmission plus reference-derived, parameterized
-  AOI leakage for excitation rays.
+  AOI leakage for excitation rays. Interaction metadata also exposes the
+  evaluated Rayleigh-leakage transmission at the actual geometric AOI for
+  downstream derived simulation layers.
 - Beam Splitter: transmitted then reflected deterministic branches.
 - Prism: configurable signed simplified deflection relative to surface tangent.
 - Pinhole: pass/block using the generic aperture-plane hit.

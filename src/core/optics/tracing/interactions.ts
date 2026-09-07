@@ -310,22 +310,25 @@ const filterTransmission = (
   component: FilterComponent,
   ray: OpticalRay,
   hit: GeometryHit,
-): readonly [number, number] => {
+): readonly [number, number, number] => {
   const angle = incidenceAngle_deg(ray, hit)
-  if (ray.kind === 'sample-return-placeholder') {
-    return Object.freeze([component.parameters.raman_transmission, angle])
-  }
-
   const baseline = 10 ** -component.parameters.rayleigh_suppression_od
+  let rayleighLeakageTransmission: number
   if (component.parameters.leakage_model === 'constant') {
-    return Object.freeze([baseline, angle])
+    rayleighLeakageTransmission = baseline
+  } else {
+    const exponent =
+      -(angle - component.parameters.leakage_midpoint_aoi_deg) /
+      component.parameters.leakage_transition_width_deg
+    const leakage = baseline + (1 - baseline) / (1 + Math.exp(exponent))
+    rayleighLeakageTransmission = Math.min(1, Math.max(0, leakage))
   }
 
-  const exponent =
-    -(angle - component.parameters.leakage_midpoint_aoi_deg) /
-    component.parameters.leakage_transition_width_deg
-  const leakage = baseline + (1 - baseline) / (1 + Math.exp(exponent))
-  return Object.freeze([Math.min(1, Math.max(0, leakage)), angle])
+  const transmission =
+    ray.kind === 'sample-return-placeholder'
+      ? component.parameters.raman_transmission
+      : rayleighLeakageTransmission
+  return Object.freeze([transmission, angle, rayleighLeakageTransmission])
 }
 
 const interactWithFilter = (
@@ -334,7 +337,8 @@ const interactWithFilter = (
   hit: GeometryHit,
   context: InteractionContext,
 ): OpticalInteractionResult => {
-  const [transmission, angle] = filterTransmission(component, incoming, hit)
+  const [transmission, angle, rayleighLeakageTransmission] =
+    filterTransmission(component, incoming, hit)
   const outgoing =
     transmission > 0
       ? [
@@ -351,6 +355,7 @@ const interactWithFilter = (
       kind: 'filter-aoi',
       incidenceAngle_deg: angle,
       transmission,
+      rayleighLeakageTransmission,
     }),
     terminationReason: outgoing.length === 0 ? 'absorbed' : undefined,
   })

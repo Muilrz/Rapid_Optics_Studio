@@ -56,6 +56,8 @@ export type OpticalInteractionMetadata =
       readonly kind: 'filter-aoi'
       readonly incidenceAngle_deg: number
       readonly transmission: number
+      /** Existing Rayleigh-suppression model evaluated at this geometric AOI. */
+      readonly rayleighLeakageTransmission: number
     }
   | {
       readonly kind: 'beam-splitter'
