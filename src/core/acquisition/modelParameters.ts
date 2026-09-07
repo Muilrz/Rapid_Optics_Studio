@@ -1,4 +1,5 @@
 import {
+  CCD_NOISE_MODEL_VERSION,
   VIRTUAL_CCD_MODEL_VERSION,
   VIRTUAL_SPECTROMETER_MODEL_VERSION,
   VirtualCcdConfigurationSchema,
@@ -33,7 +34,7 @@ export const RAMAN_SANDBOX_DETECTOR_PARAMETERS = Object.freeze({
     'higher gain linearly increases output counts per photoelectron',
   full_well_convention:
     'deterministic clipping ceiling in output counts per sampled bin',
-  read_noise_phase: 'contract-only until stochastic Phase 3E',
+  read_noise_phase: 'applied only by seeded Phase 3E preview exposure',
 })
 
 export const DEFAULT_VIRTUAL_CCD_CONFIGURATION =
@@ -51,3 +52,27 @@ export const DEFAULT_VIRTUAL_CCD_CONFIGURATION =
     integration_time_s:
       RAMAN_SANDBOX_DETECTOR_PARAMETERS.default_integration_time_s,
   })
+
+/**
+ * The Sandbox used two independent Box-Muller normal draws per bin:
+ * `sqrt(max(expected, 1)) * N(0,1)` for signal + dark counting noise and
+ * `readNoise * N(0,1)` for read noise, followed by detector-bound clipping.
+ */
+export const RAMAN_SANDBOX_NOISE_PARAMETERS = Object.freeze({
+  provenance: 'reference/raman_sandbox.html randn and withNoise',
+  model_version: CCD_NOISE_MODEL_VERSION,
+  counting_noise_model:
+    'Gaussian approximation to combined signal-shot and dark expectation',
+  counting_variance_floor_counts: 1,
+  normal_sampler: 'Box-Muller cosine branch with two uniform draws',
+  read_noise_model: 'independent zero-mean Gaussian in output counts',
+  output_bounds: 'clip to zero and detector full-well counts',
+  interpretation: 'simplified stochastic preview model, not exact Poisson CCD',
+})
+
+export const MULBERRY32_RNG_PARAMETERS = Object.freeze({
+  algorithm: 'mulberry32-v1',
+  state_increment_uint32: 0x6d2b_79f5,
+  output_divisor: 0x1_0000_0000,
+  interpretation: 'deterministic seeded 32-bit preview RNG',
+})

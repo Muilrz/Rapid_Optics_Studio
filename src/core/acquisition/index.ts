@@ -1,4 +1,5 @@
 export * from './contracts'
 export * from './modelParameters'
+export * from './previewExposure'
+export * from './rng'
 export * from './virtualSpectrometer'
-

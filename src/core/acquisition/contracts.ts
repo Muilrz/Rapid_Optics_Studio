@@ -19,6 +19,9 @@ export const VIRTUAL_SPECTROMETER_MODEL_VERSION =
 export const VIRTUAL_CCD_MODEL_VERSION = 'deterministic-ccd-v1' as const
 export const EXPECTED_CCD_SPECTRUM_MODEL_VERSION =
   'expected-ccd-spectrum-v1' as const
+export const CCD_NOISE_MODEL_VERSION = 'sandbox-gaussian-noise-v1' as const
+export const PREVIEW_EXPOSURE_MODEL_VERSION =
+  'seeded-ccd-preview-exposure-v1' as const
 
 export const SandboxGaussianQeModelSchema = z
   .object({
@@ -68,7 +71,7 @@ export const VirtualCcdConfigurationSchema = z
     qe_model: SandboxGaussianQeModelSchema,
     /** V1/Sandbox saturation ceiling in output counts per sampled bin. */
     full_well_counts: positiveFinite,
-    /** Contract-only in 3D; stochastic application is deferred to 3E. */
+    /** Ignored by deterministic expected counts; applied only to preview noise. */
     read_noise_rms_counts: nonNegativeFinite,
     /** Deterministic output-count expectation per second and sampled bin. */
     dark_current_counts_per_second_per_bin: nonNegativeFinite,
@@ -154,3 +157,101 @@ export const ExpectedCcdSpectrumSchema = z
   })
   .readonly()
 export type ExpectedCcdSpectrum = z.infer<typeof ExpectedCcdSpectrumSchema>
+
+export const RandomNumberGeneratorProvenanceSchema = z
+  .object({
+    algorithm: z.string().trim().min(1).max(128),
+    seed_uint32: z.number().int().min(0).max(0xffff_ffff).nullable(),
+  })
+  .strict()
+  .readonly()
+export type RandomNumberGeneratorProvenance = z.infer<
+  typeof RandomNumberGeneratorProvenanceSchema
+>
+
+const SignedSpectrumValuesSchema = z
+  .array(finiteNumber)
+  .min(2)
+  .readonly()
+
+export const SimulatedCcdPreviewExposureSchema = z
+  .object({
+    kind: z.literal('simulated-ccd-preview-exposure'),
+    model_version: z.literal(PREVIEW_EXPOSURE_MODEL_VERSION),
+    noise_model_version: z.literal(CCD_NOISE_MODEL_VERSION),
+    source_expected_spectrum_model_version: z.literal(
+      EXPECTED_CCD_SPECTRUM_MODEL_VERSION,
+    ),
+    material_id: RamanMaterialIdSchema,
+    axis: SpectrumAxisSchema,
+    scattered_wavelength_nm: z
+      .array(NanometersSchema)
+      .min(2)
+      .readonly(),
+    rng: RandomNumberGeneratorProvenanceSchema,
+    detector_bounds: z
+      .object({
+        minimum_counts: z.literal(0),
+        maximum_counts: positiveFinite,
+      })
+      .strict()
+      .readonly(),
+    /** Gaussian approximation to combined signal-shot and dark counting noise. */
+    counting_noise_counts: SignedSpectrumValuesSchema,
+    read_noise_counts: SignedSpectrumValuesSchema,
+    unclipped_counts: SignedSpectrumValuesSchema,
+    counts: SpectrumValuesSchema,
+    clipped_low: z.array(z.boolean()).min(2).readonly(),
+    clipped_high: z.array(z.boolean()).min(2).readonly(),
+  })
+  .strict()
+  .superRefine((exposure, context) => {
+    const expectedLength = exposure.axis.values_cm_1.length
+    const arrays = [
+      ['scattered_wavelength_nm', exposure.scattered_wavelength_nm],
+      ['counting_noise_counts', exposure.counting_noise_counts],
+      ['read_noise_counts', exposure.read_noise_counts],
+      ['unclipped_counts', exposure.unclipped_counts],
+      ['counts', exposure.counts],
+      ['clipped_low', exposure.clipped_low],
+      ['clipped_high', exposure.clipped_high],
+    ] as const
+
+    for (const [path, values] of arrays) {
+      if (values.length !== expectedLength) {
+        context.addIssue({
+          code: 'custom',
+          message: 'All preview exposure arrays must have equal length.',
+          path: [path],
+        })
+      }
+    }
+
+    for (let index = 0; index < exposure.counts.length; index += 1) {
+      const unclipped = exposure.unclipped_counts[index]
+      if (unclipped === undefined) continue
+      const shouldClipLow = unclipped < exposure.detector_bounds.minimum_counts
+      const shouldClipHigh = unclipped > exposure.detector_bounds.maximum_counts
+      if (exposure.counts[index]! > exposure.detector_bounds.maximum_counts) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Preview counts must remain within detector bounds.',
+          path: ['counts', index],
+        })
+      }
+      if (
+        exposure.clipped_low[index] !== shouldClipLow ||
+        exposure.clipped_high[index] !== shouldClipHigh
+      ) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Preview clipping masks must match unclipped counts.',
+          path: ['unclipped_counts', index],
+        })
+      }
+    }
+  })
+  .readonly()
+export type SimulatedCcdPreviewExposure = z.infer<
+  typeof SimulatedCcdPreviewExposureSchema
+>

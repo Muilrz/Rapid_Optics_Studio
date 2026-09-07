@@ -133,7 +133,7 @@ describe('Phase 3D empirical detector contracts', () => {
         'higher gain linearly increases output counts per photoelectron',
       full_well_convention:
         'deterministic clipping ceiling in output counts per sampled bin',
-      read_noise_phase: 'contract-only until stochastic Phase 3E',
+      read_noise_phase: 'applied only by seeded Phase 3E preview exposure',
     })
     expect(DEFAULT_VIRTUAL_CCD_CONFIGURATION).toMatchObject({
       model_version: VIRTUAL_CCD_MODEL_VERSION,
