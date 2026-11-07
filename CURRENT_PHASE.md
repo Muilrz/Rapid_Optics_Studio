@@ -2,8 +2,8 @@
 
 > **Updated:** 2026-11-08 (Asia/Singapore)  
 > **Implemented baseline:** Phase 3 — Raman + Virtual CCD（已有完成记录）  
-> **Current task:** 文档结构梳理与 Phase 4 Acquisition 计划编写  
-> **Review state:** PHASE4_PLAN.md 草案待审核，Phase 4 尚未实现
+> **Current task:** Phase 4 Acquisition Decision Review（仅文档）<br>
+> **Review state:** Q1～Q7、Q9 明确决策 Approved；剩余 Open 与 PRD 指标验收差异待审，4A 契约和 Phase 4 尚未实现
 
 ## 状态与证据
 
@@ -13,7 +13,7 @@
 - 工作区原有未跟踪文件 `tests/regression/phase3PipelineRegression.test.ts`，本次只读，未添加、修改或删除。不以本次文档工作确认其归档或验证状态。
 - 应用代码 `src/app/stage.ts` 的 `CURRENT_PHASE` 仍显示 Phase 3G。它是 UI 标记，不是本 Markdown；本次禁止生产代码修改，后续获授权实施时再同步。
 
-## 文档职责与本次最小整理
+## 前次文档整理记录（历史）
 
 | 文档 | 职责 | 本次处理 |
 |---|---|---|
@@ -37,9 +37,17 @@
 7. **局部说明落后代码：** `src/core/acquisition/README.md` 开头声称仅 Phase 3D/no preview，后文却描述 Phase 3E，代码也已有 seeded noise。该局部措辞整理留待后续获授权维护，本次不扩展为模块文档清理。
 8. **需求不等于已有指标实现：** PRD 要求 Run 保存 Rayleigh OD / SNR；当前 SpectrumPreview 未见这两个读数，代码也未见可直接复用的对应 Run 指标函数。Phase 4 必需 Run 指标列入专项计划，公式与边界列为 Open Questions；不把缺口笼统推迟到 Phase 8，也不因此否定已有 Phase 3 历史记录。
 
+## 本次 Decision Review
+
+- 已将用户明确确认的 Q1～Q7、Q9 决策写入 [PHASE4_PLAN.md](PHASE4_PLAN.md) §9.1，更新 Data Contracts、State Machine、逐子阶段与总体测试要求；Approved 不等于 4A 完成。
+- 逐帧 CCD counts 与完整 raw mean 均不可变；Cancelled 保留已完成帧但无完整结果，不进入 Completed Runs；正式 integration >0、Average 默认 N=20，无未经资源测试的产品上限。
+- 复用 Phase 3 可靠指标；无定义的 SNR/OD 用 null + reason。PRD 未明确 null 的数值验收含义，差异显式待审，不改 PRD。History 记账不取消，但 Undo/Redo 改变科学输入仍取消。
+- RNG/sampler version、独立 seed、点击时配置 snapshot、科学配置 revision/等效机制、UTC startedAt/completedAt 和可注入 Clock 已批准；剩余细节、Q8/Q10 仍 Open。
+- 本次无生产代码、测试、依赖或 reference 修改；不运行功能验证，仅检查文档 diff。原有未跟踪回归测试保持原样，不纳入提交。
+
 ## 下一步与停止边界
 
-1. 审核 [PHASE4_PLAN.md](PHASE4_PLAN.md)，先确认第 9 节影响契约的决策。
-2. 审核通过后，仍需明确下达 Phase 4A 或指定批次的实施指令；本次文档任务不授权实现。
+1. 审核 [PHASE4_PLAN.md](PHASE4_PLAN.md) 本次 Decision Review；继续确认 §9.1 剩余 Open，尤其契约相关细节及 PRD 指标验收差异。
+2. 后续仍需明确下达 Phase 4A 契约或指定批次的实施指令；本次仅授权文档更新、中文 Commit 与 Push。
 3. 建议实施顺序：4A → 4B → 4C → 4D → 4E → 4F，每个子阶段验收后停止。
-4. 当前未开始 Phase 4 功能，也未开始 Phase 5～8；未修改生产代码、依赖或 reference，未 Commit / Push。
+4. 当前未开始 Phase 4 功能，也未开始 Phase 5～8；本次文档检查后按授权 Commit / Push，随后停止等待审核。
