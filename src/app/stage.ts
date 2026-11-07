@@ -1,4 +1,4 @@
 export const CURRENT_PHASE =
-  'Phase 3F — Studio Integration + Spectrum Preview' as const
+  'Phase 3G — Demo Regression + Integration Hardening' as const
 
 export const PRODUCT_STATUS = 'V1 under development' as const

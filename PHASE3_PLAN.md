@@ -1,7 +1,8 @@
 # Rapid Optics Studio V1 — Phase 3 Execution Plan
 
 > **Phase:** 3 — Raman + Virtual CCD  
-> **Status:** Planned / Not Started  
+> **Status:** Completed
+> **Completed:** 2026-11-08
 > **Depends on:** Phase 2E — Editor Completion & Integration Hardening  
 > **Phase 2 baseline:** Phase 2 Exit Gate satisfied  
 > **Document role:** Phase 3 execution contract. `PRD.md` remains the product requirements authority; `IMPLEMENTATION_PLAN.md` remains the V1 high-level engineering roadmap.
@@ -722,6 +723,15 @@ At minimum manually verify:
 - saturation state is visible when intentionally triggered;
 - zoom / pan / select / move / lock / undo / redo from Phase 2 still function;
 - browser console has no unexpected warnings or errors.
+
+### Phase 3G browser acceptance record
+
+Real-browser acceptance was completed in Microsoft Edge on 2026-11-08. The
+default Raman layout and spectrum rendered correctly; material, optical-path,
+focus, integration-time, preview, and saturation changes updated as expected;
+Phase 2 zoom, pan, selection, movement, locking, undo, and redo interactions
+remained operational; and the browser console contained no unexpected errors or
+warnings.
 
 ## 3G.4 Documentation
 
