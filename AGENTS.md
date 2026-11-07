@@ -41,6 +41,19 @@ Authoritative for:
 
 When deciding **how and when the product should be implemented**, use `IMPLEMENTATION_PLAN.md`.
 
+### `PHASE*_PLAN.md`
+
+Phase-specific detailed execution plans own sub-phase breakdowns, contracts,
+tests, and independent acceptance gates within the roadmap's phase scope.
+Completed plans remain engineering history; do not expand them with later phases.
+An unapproved draft is not authorization to implement.
+
+### `CURRENT_PHASE.md`
+
+The current development status entry point: completed baseline, active task,
+review state, blockers, and next authorized boundary. It does not redefine
+requirements or replace phase plans. README keeps a brief status and links here.
+
 ### `README.md`
 
 Use as the repository entry point for:
@@ -71,6 +84,7 @@ Resolve these according to responsibility:
 
 - For product behavior, V1 requirements, non-goals, and acceptance criteria, follow `PRD.md`.
 - For repository structure, architecture implementation, dependencies, development order, and current technical baseline, follow `IMPLEMENTATION_PLAN.md`.
+- For a phase's detailed execution and acceptance gates, follow its `PHASE*_PLAN.md` within that roadmap; for current progress, consult `CURRENT_PHASE.md`.
 - A later engineering decision may simplify implementation without silently changing the product requirement.
 - Do not reinterpret an engineering simplification as permission to remove a product requirement.
 - If a real contradiction would require changing product scope, stop and report the conflict instead of silently choosing one interpretation.

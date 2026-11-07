@@ -11,6 +11,8 @@
 
 本文只给出工程分析与实施计划，不修改 PRD 的产品需求，也不开始后续功能实现。
 
+本文负责 Phase 0～8 总体路线图、依赖关系、阶段范围、阶段级 Exit Gate 与专项计划索引。阶段详细施工由独立 `PHASE*_PLAN.md` 承载，当前开发状态统一查看 [`CURRENT_PHASE.md`](CURRENT_PHASE.md)。第 1～2 节是立项时的 Demo 评估，不是当前生产代码缺陷清单。
+
 当前实施约束：
 
 - Node.js 24.18.0；
@@ -435,6 +437,11 @@ V1 采用**单一 React + TypeScript + Vite 项目**，不在第一阶段引入 
 RapidOpticsStudio/
 ├─ PRD.md
 ├─ IMPLEMENTATION_PLAN.md
+├─ PHASE0_PLAN.md
+├─ PHASE1_PLAN.md
+├─ PHASE3_PLAN.md
+├─ PHASE4_PLAN.md
+├─ CURRENT_PHASE.md
 ├─ README.md
 │
 ├─ reference/
@@ -605,452 +612,24 @@ Phase 8 Diagnostics + Hardening
 6. Playwright 和完整 E2E 放到 Phase 8，避免初始化阶段投入过多测试基础设施；
 7. 仍然坚持 Demo regression-first、typed core、2D authoritative、immutable acquisition 等关键架构原则。
 
----
+### 4.4 专项计划索引
 
-## 5. Phase 0 详细实施计划：Bootstrap
+| Phase | 详细计划入口 | 定位 |
+|---|---|---|
+| 0 | [`PHASE0_PLAN.md`](PHASE0_PLAN.md) | 从原总体计划迁出的已完成历史施工计划 |
+| 1 | [`PHASE1_PLAN.md`](PHASE1_PLAN.md) | 从原总体计划迁出的已完成历史施工计划 |
+| 2 | 无独立计划留存 | 已完成；不根据现有代码倒推或补造历史施工计划 |
+| 3 | [`PHASE3_PLAN.md`](PHASE3_PLAN.md) | 已完成阶段的详细计划与验收记录 |
+| 4 | [`PHASE4_PLAN.md`](PHASE4_PLAN.md) | Acquisition 详细计划草案，待审核 |
+| 5～8 | 尚未编写专项计划 | 当前仅由本路线图定义阶段范围与 Exit Gate |
 
-### 5.1 目标
-
-Phase 0 只负责把当前目录变成一个**可运行、可构建、可测试、可持续开发的正式 React 项目**。
-
-Phase 0 不实现：
-
-- Ray tracing；
-- Raman；
-- CCD；
-- 2D Studio 功能；
-- 3D 功能；
-- 完整 Project schema；
-- Web Worker；
-- Backend；
-- Playwright E2E。
-
-### 5.2 工作项
-
-#### P0.1 环境确认
-
-检查并记录：
-
-```text
-node -v   → v24.18.0
-npm -v
-git --version
-```
-
-若 Node/npm/Git 已可用，不重复安装。
-
-#### P0.2 初始化 React + TypeScript + Vite
-
-在当前 `RapidOpticsStudio/` 根目录内初始化单一 Vite React TypeScript 项目。
-
-要求：
-
-- 保留 `PRD.md`；
-- 保留 `IMPLEMENTATION_PLAN.md`；
-- 保留 `reference/raman_sandbox.html`；
-- 不覆盖 reference Demo；
-- 使用 npm 并生成 `package-lock.json`。
-
-#### P0.3 安装最小基础依赖
-
-正式运行依赖：
-
-```text
-three
-zustand
-zod
-```
-
-开发依赖按 Vite/React TypeScript 默认配置补齐，并加入：
-
-```text
-vitest
-```
-
-ESLint 使用 Vite/React 适配的基础配置即可。
-
-Phase 0 不强制安装：
-
-- Konva/react-konva；
-- ECharts；
-- Playwright；
-- Fastify；
-- pnpm；
-- formatter 大型工具链；
-- Worker library。
-
-这些在进入对应 Phase、确认实际需要时再安装。
-
-#### P0.4 建立基础目录
-
-创建本计划第 3 节中的 `src/app`、`src/features`、`src/core`、`src/project`、`src/store`、`src/types`、`src/utils` 和基础 `tests/fixtures`、`tests/regression` 目录。
-
-不要为了“填满目录”提前创建大量空文件或抽象类。
-
-允许只创建必要的 `index.ts` / placeholder README（若确有帮助），但避免 boilerplate 泛滥。
-
-#### P0.5 最小 App Shell
-
-将 Vite 默认示例页面替换为最小 Rapid Optics Studio shell，用于确认：
-
-- React 正常启动；
-- CSS 正常；
-- 页面明确显示 `Rapid Optics Studio` 和当前开发阶段；
-- 不实现正式产品 UI。
-
-#### P0.6 最小测试基线
-
-建立 Vitest，并至少有：
-
-- 一个纯 TypeScript smoke test；
-- 一个基础模块 import test（可选）。
-
-Phase 0 不设置高 coverage 门槛。
-
-#### P0.7 README
-
-创建/更新根目录 `README.md`，至少写明：
-
-- 产品一句话说明；
-- 当前状态：V1 under development；
-- 技术栈；
-- Node.js 版本基线；
-- `npm install`；
-- `npm run dev`；
-- `npm run build`；
-- `npm run test`；
-- 目录结构简述；
-- `PRD.md` 是产品权威基线；
-- `IMPLEMENTATION_PLAN.md` 是实施计划；
-- `reference/raman_sandbox.html` 是只读行为参考。
-
-### 5.3 Phase 0 验收
-
-必须通过：
-
-```text
-npm install
-npm run dev
-npm run build
-npm run test
-npm run lint
-```
-
-并确认：
-
-- TypeScript 无错误；
-- production build 成功；
-- 浏览器能打开最小 App shell；
-- `reference/raman_sandbox.html` 未被修改；
-- 没有新增 backend/database/server；
-- 没有引入 monorepo/pnpm；
-- 没有开始 Phase 1 光学代码。
-
-### 5.4 Phase 0 Exit Gate
-
-Phase 0 完成后，仓库应“干净但很薄”：
-
-```text
-项目能跑
-项目能 build
-项目能 test/lint
-目录边界已建立
-核心依赖已安装
-文档说明清楚
-```
-
-此时停止。下一步才进入 Phase 1。
+专项计划细化本路线图，不改变 PRD 产品需求。计划状态与开发进度以 `CURRENT_PHASE.md` 为入口；不得把“计划已编写”解释成“实现已获授权”。
 
 ---
 
-## 6. Phase 1 详细实施计划：Data Model + Optical Core
+## 5. PRD 与 Demo 的冲突、歧义及实现风险
 
-### 6.1 目标
-
-Phase 1 建立 V1 最重要的底层基础：
-
-> **使用 mm 世界坐标的、与 React/DOM/Three.js 无关的纯 TypeScript 2D Optical Core。**
-
-完成后，即使还没有正式 2D UI，也应该能够通过自动测试证明：
-
-- 默认 Raman 光路能够从 Laser 到 Sample；
-- secondary Raman/Rayleigh test emission 能沿返回路径到达 Spectrometer；
-- Mirror 旋转会断路；
-- Beam Splitter 会产生稳定分支；
-- 元件 aperture / power / termination 有清晰语义。
-
-Phase 1 不实现：
-
-- 正式 2D Editor；
-- Raman 峰/CCD counts；
-- Acquisition；
-- Spectrum Analysis；
-- Three.js；
-- 完整项目文件 UI。
-
-### 6.2 增量数据模型
-
-Phase 1 只建立 Optical Core 当前真正需要的数据模型，不一次把未来所有 Project 字段设计完。
-
-至少包括：
-
-```text
-Transform2D
-  x_mm
-  y_mm
-  rotation_deg
-
-OpticalComponent
-  id
-  type
-  name
-  enabled
-  transform
-  geometry/aperture
-  type-specific parameters
-
-Ray2D
-  id
-  parentRayId?
-  origin
-  direction
-  kind
-  wavelength_nm
-  power
-  generation
-  sourceComponentId
-```
-
-以及：
-
-- `Intersection`；
-- `RaySegment`；
-- `InteractionEvent`；
-- `TerminationReason`；
-- `OpticalTraceResult`；
-- `TraceOptions`。
-
-关键原则：
-
-- 世界坐标一律 mm；
-- screen pixel 不进入 core；
-- angle schema 对外 degree，内部数学可转 radian；
-- ID 使用稳定 string ID；
-- Ray/Trace records 尽量 immutable；
-- result 不包含 class instance/function，保持未来可序列化。
-
-### 6.3 Zod schema 范围
-
-Phase 1 使用 Zod 覆盖：
-
-- Transform；
-- 10 类 component 的基础 schema；
-- 当前 Optical Scene；
-- 当前 trace configuration；
-- Demo default fixture 所需数据。
-
-暂不要求 Phase 1 建完：
-
-- AcquisitionRun 完整 schema；
-- processing pipeline 完整 schema；
-- 完整 view state；
-- 全部 Project I/O migration。
-
-这些在后续 Phase 增量扩展，Phase 7 收口正式 `RapidOpticsProject schema v1`。
-
-### 6.4 Demo 数据提取为 fixtures
-
-从 `reference/raman_sandbox.html` 提取但不直接运行/复制其全局代码：
-
-- 默认 532 nm + Silicon 光路；
-- 10 类元件默认参数基线；
-- 532 / 633 / 785 nm presets；
-- Si / PS / CaCO3 峰数据可先作为 fixture/reference data 存放，但 Raman 计算到 Phase 3 才实现；
-- legacy optics/spectrum JSON 示例；
-- Demo 经验常量清单及 provisional 注释。
-
-默认布局坐标转换原则：
-
-```text
-Demo 一格 = 25 mm
-```
-
-保留相对布局和连通行为，不保留 `P=28 px` 作为物理量。
-
-`ZRpx=42` 等以 pixel 为单位的常量不得直接进入正式模型；若后续需要复现 focus 行为，Phase 3 再定义有单位的 provisional model parameter。
-
-### 6.5 数学与几何基础
-
-实现并测试：
-
-- Vec2 operations；
-- normalize / dot / cross；
-- rotate；
-- reflect；
-- angle normalization；
-- ray 与有限平面 aperture intersection；
-- ray 与圆形 target intersection（若仍用于 Sample/特定器件）；
-- nearest positive intersection；
-- epsilon / self-hit avoidance。
-
-测试覆盖：
-
-- parallel；
-- reverse；
-- endpoint；
-- aperture miss；
-- very small distance；
-- finite/NaN 防护。
-
-### 6.6 Tracer
-
-采用与 Demo 验证过的 queue-based 思路，但重写为纯函数：
-
-```text
-emit ray
-  ↓
-nearest hit
-  ↓
-component interaction
-  ↓
-0..N outgoing rays
-  ↓
-queue
-```
-
-提供：
-
-- branching；
-- minPower；
-- maxGenerations；
-- maxRays；
-- escaped / absorbed / detected / threshold / limit 等 termination；
-- ray lineage；
-- segment/event records；
-- handler error → typed warning/error，不让整个 trace 崩溃。
-
-### 6.7 10 类 Component Interaction
-
-建议按以下顺序小步实现并单独测试：
-
-1. Laser emitter；
-2. Mirror：specular reflection + reflectivity；
-3. Sample：excitation target/hit event；
-4. Spectrometer：detector hit；
-5. Objective：V1 simplified pass-through + interaction metadata；
-6. Dichroic：kind-aware simplified R/T branching；
-7. Edge Filter：Raman transmission + simplified leakage behavior；
-8. Beam Splitter：configurable R/T branching；
-9. Prism：configurable simplified deflection；
-10. Pinhole：finite aperture pass/block。
-
-不要把所有行为继续写成一个巨大 `if/else`。采用明确的 component registry / interaction handler 映射即可，但不需要为了它建立复杂 plugin framework。
-
-### 6.8 Sample secondary emission contract
-
-为了保持 Generic Optical Core + Raman Module 的边界：
-
-Optical Core 本身只需要能记录：
-
-```text
-excitation hit sample
-入射方向
-入射功率
-ray lineage
-```
-
-Phase 1 regression 可以提供一个测试用的 `backwardEmission` strategy，生成严格反向 Raman/Rayleigh secondary rays，以验证返回路径。
-
-真正的材料峰、Raman intensity、fluorescence、CCD counts 在 Phase 3 实现，不写入 `core/optics`。
-
-### 6.9 Focus contract
-
-Phase 1 只建立光学几何层所需的 focus metadata，例如：
-
-```text
-actualDistance_mm
-targetFocalDistance_mm
-defocus_mm
-objectiveComponentId
-sampleComponentId
-```
-
-关联 Objective 必须基于实际 ray lineage / interaction history，而不是：
-
-```text
-find(first objective)
-```
-
-`focusEfficiency` 的经验公式放到 Phase 3 Raman/focus model。
-
-### 6.10 Regression Tests
-
-至少建立：
-
-1. **Default Raman fixture**
-   - excitation 到 Sample；
-   - test backward Raman 能到 Spectrometer。
-2. **Broken path**
-   - 旋转关键 Mirror 后 Sample 不再命中。
-3. **Beam Splitter**
-   - 生成两条 branch；
-   - power 按配置分配；
-   - lineage 正确。
-4. **Dichroic**
-   - excitation 与 Raman 走不同默认 interaction。
-5. **Filter**
-   - AOI 改变时 leakage model 行为方向符合预期。
-6. **Prism**
-   - simplified deflection 方向稳定。
-7. **Pinhole**
-   - aperture 内通过、外部阻断。
-8. **Termination**
-   - escaped / max generation / max rays / below threshold 不会无限循环。
-9. **Component order independence**
-   - 改变数组顺序不改变 nearest-hit 结果。
-
-### 6.11 性能基线
-
-Phase 1 建一个 30+ 元件与 branching fixture，记录真实 trace 时间。
-
-原则：
-
-- 先线性 nearest-hit；
-- 不提前实现 spatial index；
-- 不提前实现 Web Worker；
-- 若真实交互阶段显示 core calculation 已成为 UI 性能瓶颈，再优化。
-
-建议记录：
-
-```text
-P50
-P95
-ray count
-termination count
-```
-
-但 Phase 1 不把 20–30 ms 这种尚未验证的数字设成硬性失败条件；PRD 的总体 `<100 ms` 仍作为 V1 性能方向。
-
-### 6.12 Phase 1 Exit Gate
-
-必须满足：
-
-- Optical Core 不依赖 React/DOM/Zustand/Three.js；
-- mm world coordinate 已建立；
-- 10 类元件均有 typed data contract；
-- 10 类 interaction 的 V1 simplified behavior 有测试；
-- nearest-hit、reflection、branching、aperture、power、termination 测试通过；
-- Demo 默认布局 regression 通过；
-- broken path / beam splitter regression 通过；
-- ray lineage 可追溯；
-- 无 NaN / 无界 ray growth；
-- 尚未提前进入 Phase 2 UI 或 Phase 3 Raman/CCD。
-
----
-
-## 7. PRD 与 Demo 的冲突、歧义及实现风险
-
-### 7.1 明确冲突
+### 5.1 明确冲突
 
 #### C1. Node Service 范围
 
@@ -1094,7 +673,7 @@ termination count
 
 计划处理：Three.js 通过 npm 作为本地项目依赖安装；Phase 6 再处理 lazy loading、3D error boundary 和 geometry/material/texture dispose。
 
-### 7.2 需要在实现前固化的歧义
+### 5.2 需要在实现前固化的歧义
 
 这些不是要求修改 PRD，而是 实施过程中必须在本 `IMPLEMENTATION_PLAN.md` / schema 中明确的工程解释：
 
@@ -1124,7 +703,7 @@ termination count
    - PRD 顶层建议包含 viewState，但 Save/Load 必须恢复列表没有明确 camera/selection。
    - Schema 应区分可选持久化 view preferences 与绝不持久化的 transient selection/pointer state。
 
-### 7.3 高风险实现点
+### 5.3 高风险实现点
 
 | 风险 | 影响 | 缓解措施 |
 |---|---|---|
@@ -1143,7 +722,7 @@ termination count
 | Browser save API 差异 | Save/Save As 不一致 | capability adapter + download/upload fallback |
 | 过早拆 monorepo/workspace | 初始化成本高、开发摩擦 | V1 先采用单项目 `src/core` / `src/features` 分层，确有多 consumer 后再拆包 |
 
-### 7.4 已知 Demo 缺陷的追踪落点
+### 5.4 已知 Demo 缺陷的追踪落点
 
 | PRD 已知缺陷 | 负责阶段 | 防回归方式 |
 |---|---|---|
@@ -1155,7 +734,7 @@ termination count
 
 ---
 
-## 8. 实施原则与停止点
+## 6. 实施原则与停止点
 
 后续实施应遵循：
 
@@ -1168,4 +747,4 @@ termination count
 - 每一阶段以可自动验证的 exit gate 结束；
 - 模型近似、单位和 version 必须显式，不暗示精密 Zemax 级结果。
 
-本文修订后作为 V1 当前工程实施基线。下一步可在明确指令下执行 **Phase 0 — Bootstrap**；执行时只完成 Phase 0，不自动进入 Phase 1，不修改 PRD，不修改 `reference/raman_sandbox.html`。
+本文作为 V1 总体工程实施基线。当前状态与下一步审核边界见 [`CURRENT_PHASE.md`](CURRENT_PHASE.md)；只有收到明确实施指令后才执行指定阶段或子阶段，不自动推进，不修改 PRD 或 `reference/raman_sandbox.html`。

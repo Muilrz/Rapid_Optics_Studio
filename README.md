@@ -4,7 +4,7 @@ Rapid Optics Studio is a Raman-first scientific engineering studio for building,
 
 ## Status
 
-V1 under development. The repository has completed **Phase 3 — Raman + Virtual CCD**, including Phase 3G regression and real-browser integration acceptance in Microsoft Edge. The React/Zustand Studio derives the complete Scene → Trace → Raman optical context → expected Raman spectrum → deterministic Expected CCD Spectrum → seeded single-preview exposure chain without duplicating project state. The live Spectrum Preview overlays expected and noisy detector curves, exposes the built-in materials and detector controls, and reports focus, path, power, and saturation telemetry. Acquisition runs and averaging, spectrum analysis, 3D, and Project I/O remain deferred to their documented later phases.
+V1 under development. **Phase 3 — Raman + Virtual CCD** is recorded as completed. The Studio provides the trace-to-seeded-preview pipeline. **Phase 4 — Acquisition** has a draft plan awaiting review; implementation has not started. See [`CURRENT_PHASE.md`](CURRENT_PHASE.md) for current progress, evidence, and the next authorized boundary.
 
 Phase 3 remains an explicitly **Simplified / First-order** engineering model. Material intensities are relative and phenomenological; focus uses a provisional millimetre-based defocus model; optical and spectrometer throughput are simplified; QE follows the documented Gaussian approximation; and preview noise uses a seeded Gaussian approximation rather than an exact Poisson detector model. The preview is not an acquisition run or processed spectrum.
 
@@ -67,6 +67,11 @@ npm run lint
 ## Authoritative documents
 
 - [`PRD.md`](PRD.md) is the authoritative product and V1 requirements baseline.
-- [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) is the current engineering implementation plan.
-- [`PHASE3_PLAN.md`](PHASE3_PLAN.md) is the Phase 3 execution contract and sub-phase boundary.
+- [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) owns the Phase 0–8 roadmap, dependencies, exit gates, and detailed-plan index.
+- [`PHASE0_PLAN.md`](PHASE0_PLAN.md) and [`PHASE1_PLAN.md`](PHASE1_PLAN.md) preserve the completed early-phase execution plans extracted from the former mixed-role roadmap.
+- Phase 2 has no independently retained execution-plan document; the repository does not reconstruct one retrospectively from the implementation.
+- [`PHASE3_PLAN.md`](PHASE3_PLAN.md) preserves the completed Phase 3 execution contract and acceptance record.
+- [`PHASE4_PLAN.md`](PHASE4_PLAN.md) is the draft Acquisition execution plan awaiting review.
+- [`CURRENT_PHASE.md`](CURRENT_PHASE.md) owns current development status and review boundaries.
+- [`AGENTS.md`](AGENTS.md) defines agent execution rules and document responsibilities.
 - [`reference/raman_sandbox.html`](reference/raman_sandbox.html) is a read-only behavior reference and is not part of the production bundle.
