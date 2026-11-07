@@ -389,8 +389,8 @@ button {
 }
 
 .trace-excitation {
-  stroke: #5af19f;
-  filter: drop-shadow(0 0 3px rgb(90 241 159 / 80%));
+  stroke: var(--trace-color, #5af19f);
+  filter: drop-shadow(0 0 3px var(--trace-glow, rgb(90 241 159 / 80%)));
 }
 
 .trace-sample-return-placeholder {

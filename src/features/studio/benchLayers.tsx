@@ -1,7 +1,11 @@
 import type { Breadboard, OpticalScene, TraceResult } from '../../core/optics'
-import type { PointerEvent as ReactPointerEvent } from 'react'
+import type {
+  CSSProperties,
+  PointerEvent as ReactPointerEvent,
+} from 'react'
 import { worldToScreen, type Camera2D, type ViewportSize } from './camera'
 import { ComponentMarker } from './ComponentMarker'
+import { getExcitationWavelengthPresentation } from './wavelengthPresentation'
 
 interface LayerViewProps {
   readonly camera: Camera2D
@@ -133,19 +137,32 @@ interface TraceLayerProps extends LayerViewProps {
 }
 
 export function TraceLayer({ trace, camera, viewport }: TraceLayerProps) {
-  const rayKinds = new Map(trace.rays.map((ray) => [ray.rayId, ray.kind]))
+  const rays = new Map(trace.rays.map((ray) => [ray.rayId, ray]))
 
   return (
     <g className="trace-layer" aria-label="Computed optical trace">
       {trace.segments.map((segment) => {
         const start = worldToScreen(segment.start, camera, viewport)
         const end = worldToScreen(segment.end, camera, viewport)
-        const kind = rayKinds.get(segment.rayId) ?? 'excitation'
+        const ray = rays.get(segment.rayId)
+        const kind = ray?.kind ?? 'excitation'
+        const excitationPresentation =
+          kind === 'excitation' && ray
+            ? getExcitationWavelengthPresentation(ray.wavelength_nm)
+            : null
+        const style = excitationPresentation
+          ? ({
+              '--trace-color': excitationPresentation.color,
+              '--trace-glow': excitationPresentation.glow,
+            } as CSSProperties)
+          : undefined
         return (
           <line
             key={segment.rayId}
             className={`trace-segment trace-${kind}`}
             data-ray-id={segment.rayId}
+            data-wavelength-nm={ray?.wavelength_nm}
+            style={style}
             x1={start.x_px}
             y1={start.y_px}
             x2={end.x_px}
