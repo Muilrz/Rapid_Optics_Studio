@@ -100,4 +100,17 @@ describe('Studio component definitions and factory', () => {
       }
     }
   })
+
+  it('offers the three validated built-in Raman materials for Samples', () => {
+    expect(COMPONENT_DEFINITIONS.sample.parameterFields).toContainEqual({
+      kind: 'select',
+      key: 'material_id',
+      label: 'Material',
+      options: [
+        { label: 'Silicon', value: 'material:silicon' },
+        { label: 'Polystyrene', value: 'material:polystyrene' },
+        { label: 'Calcite', value: 'material:calcite' },
+      ],
+    })
+  })
 })

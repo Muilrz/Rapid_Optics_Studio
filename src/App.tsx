@@ -2,11 +2,13 @@ import { CURRENT_PHASE } from './app/stage'
 import { ComponentLibrary } from './features/studio/ComponentLibrary'
 import { OpticalBench } from './features/studio/OpticalBench'
 import { PropertyInspector } from './features/studio/PropertyInspector'
+import { SpectrumPreview } from './features/spectrum/SpectrumPreview'
 import { useStudioStore } from './store/studioStore'
 
 function App() {
   const scene = useStudioStore((state) => state.authoritative.scene)
   const trace = useStudioStore((state) => state.derived.trace)
+  const spectrum = useStudioStore((state) => state.derived.spectrum)
   const snapEnabled = useStudioStore((state) => state.editor.snapEnabled)
   const selectedCount = useStudioStore(
     (state) => state.editor.selectedComponentIds.length,
@@ -19,9 +21,15 @@ function App() {
   const resetView = useStudioStore((state) => state.resetView)
   const undo = useStudioStore((state) => state.undo)
   const redo = useStudioStore((state) => state.redo)
-  const detected = trace.events.some(
-    (event) => event.kind === 'termination' && event.reason === 'detected',
-  )
+  const signalDetected = spectrum.context?.path_state === 'valid-signal-path'
+  const signalStatus =
+    spectrum.kind === 'unavailable'
+      ? 'SPECTRUM UNAVAILABLE'
+      : spectrum.context.path_state === 'valid-signal-path'
+        ? 'SIGNAL PATH'
+        : spectrum.context.path_state === 'excited-no-return-path'
+          ? 'NO RETURN SIGNAL'
+          : 'NO EXCITATION'
   const pitch_mm = scene.breadboards[0]?.hole_pitch_mm ?? 25
 
   return (
@@ -87,45 +95,48 @@ function App() {
         </div>
 
         <div
-          className={`toolbar-status${detected ? '' : ' toolbar-status--broken'}`}
+          className={`toolbar-status${signalDetected ? '' : ' toolbar-status--broken'}`}
           aria-live="polite"
         >
           <span className="status-indicator" aria-hidden="true" />
           <span className="toolbar-status-label">Derived trace</span>
           <span className="toolbar-status-value">
-            {detected ? 'PATH DETECTED' : 'NO DETECTOR PATH'} · optics-v1
+            {signalStatus} · optics-v1 / Raman-v1
           </span>
         </div>
       </header>
 
       <section className="studio-workspace" aria-label="2D Studio">
         <ComponentLibrary />
-        <div className="bench-panel">
-          <div className="panel-heading">
-            <div>
-              <p className="panel-kicker">Authoritative view</p>
-              <h2>Optical Bench</h2>
+        <div className="studio-center-stack">
+          <div className="bench-panel">
+            <div className="panel-heading">
+              <div>
+                <p className="panel-kicker">Authoritative view</p>
+                <h2>Optical Bench</h2>
+              </div>
+              <div className="ray-legend" aria-label="Ray legend">
+                <span className="legend-item">
+                  <i className="legend-swatch legend-swatch--excitation" />
+                  Excitation
+                </span>
+                <span className="legend-item">
+                  <i className="legend-swatch legend-swatch--return" />
+                  Sample return
+                </span>
+              </div>
             </div>
-            <div className="ray-legend" aria-label="Ray legend">
-              <span className="legend-item">
-                <i className="legend-swatch legend-swatch--excitation" />
-                Excitation
-              </span>
-              <span className="legend-item">
-                <i className="legend-swatch legend-swatch--return" />
-                Sample return
-              </span>
-            </div>
+            <OpticalBench />
+            <footer className="bench-statusbar">
+              <span>{scene.components.length} components</span>
+              <span>{selectedCount} selected</span>
+              <span>{trace.rays.length} rays</span>
+              <span>{trace.segments.length} segments</span>
+              <span>Grid {pitch_mm} mm</span>
+              <span>World coordinates · mm</span>
+            </footer>
           </div>
-          <OpticalBench />
-          <footer className="bench-statusbar">
-            <span>{scene.components.length} components</span>
-            <span>{selectedCount} selected</span>
-            <span>{trace.rays.length} rays</span>
-            <span>{trace.segments.length} segments</span>
-            <span>Grid {pitch_mm} mm</span>
-            <span>World coordinates · mm</span>
-          </footer>
+          <SpectrumPreview />
         </div>
         <PropertyInspector />
       </section>

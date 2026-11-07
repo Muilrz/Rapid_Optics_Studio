@@ -7,6 +7,7 @@ import {
   type OpticalScene,
   type Vec2,
 } from '../../core/optics'
+import { BUILT_IN_RAMAN_MATERIALS } from '../../core/raman'
 
 export type InspectorParameterField =
   | {
@@ -136,7 +137,17 @@ export const COMPONENT_DEFINITIONS = Object.freeze({
       aperture_mm: 10,
       parameters: { material_id: 'material:silicon' },
     },
-    parameterFields: [{ kind: 'text', key: 'material_id', label: 'Material ID' }],
+    parameterFields: [
+      {
+        kind: 'select',
+        key: 'material_id',
+        label: 'Material',
+        options: BUILT_IN_RAMAN_MATERIALS.map(({ id, name }) => ({
+          value: id,
+          label: name,
+        })),
+      },
+    ],
   },
   filter: {
     type: 'filter',

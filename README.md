@@ -4,7 +4,7 @@ Rapid Optics Studio is a Raman-first scientific engineering studio for building,
 
 ## Status
 
-V1 under development. The repository has completed **Phase 3E — Seeded Virtual CCD Noise & Preview Exposure**. The pure TypeScript scientific core now converts the immutable Expected CCD Spectrum into a bounded single simulated preview exposure using an injected or versioned seeded RNG, the documented Sandbox Gaussian shot/dark counting-noise approximation, independent read noise, and explicit detector clipping. Preview refresh/UI, acquisition runs and averaging, spectrum UI, 3D, and Project I/O remain deferred to their documented later phases.
+V1 under development. The repository has completed **Phase 3F — Studio Integration & Spectrum Preview UI**. The React/Zustand Studio now derives the complete Scene → Trace → Raman optical context → expected Raman spectrum → deterministic Expected CCD Spectrum → seeded single-preview exposure chain without duplicating project state. The live Spectrum Preview overlays expected and noisy detector curves, exposes the built-in materials and detector controls, and reports focus, path, power, and saturation telemetry. Acquisition runs and averaging, spectrum analysis, 3D, and Project I/O remain deferred to their documented later phases.
 
 ## Technology
 
@@ -50,15 +50,15 @@ npm run lint
 ## Directory overview
 
 - `src/app`: application bootstrap and app-level concerns.
-- `src/features`: product-facing feature modules; currently contains the 2D Studio camera, deterministic click/box selection and group-move helpers, align/distribution math, editability policy, and interactive SVG bench layers.
+- `src/features`: product-facing feature modules; currently contains the 2D Studio camera and interactive bench layers plus the live Phase 3F Spectrum Preview.
 - `src/core`: pure TypeScript scientific computation modules; contains the hardened Phase 1 generic optical core, the separate Raman material/spectrum/focus/trace-coupling core, and the minimal Virtual Spectrometer / deterministic CCD / seeded single-preview exposure core.
 - `src/project`: product defaults and component definitions/factories; currently owns the formal default Raman scene and ten-type Studio creation registry.
-- `src/store`: Zustand application state composition with separate authoritative, editor clipboard/selection/lock, bounded design history, view, and derived boundaries.
+- `src/store`: Zustand application state composition with separate authoritative, editor clipboard/selection/lock, bounded design history, view, and derived simulation boundaries. Trace, Raman context, expected spectra, and preview exposure remain recomputable derived results.
 - `src/types`: stable cross-module application types.
 - `src/utils`: genuinely shared utilities.
 - `tests/fixtures`: reference, regression, stress, and performance fixtures.
 - `tests/regression`: deterministic Optical Core and Demo behavior regressions.
-- `tests/studio`: camera, click/box selection and group-move math, lock/align/distribution commands, component definitions/factory, clipboard/history, scene mutations, Inspector validation, state-boundary, and interactive bench rendering tests.
+- `tests/studio`: camera, editing commands, component definitions/factory, clipboard/history, scene mutations, Inspector validation, state boundaries, interactive bench rendering, and Spectrum Preview integration/rendering tests.
 - `tests/performance`: non-flaky diagnostic Optical Core performance baselines.
 - `reference`: read-only product behavior reference material.
 

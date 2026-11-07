@@ -182,6 +182,15 @@ button {
   padding: 12px;
 }
 
+.studio-center-stack {
+  display: grid;
+  grid-template-rows: minmax(360px, 1.45fr) minmax(300px, 1fr);
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
 .component-library,
 .property-inspector {
   min-width: 0;
@@ -325,6 +334,10 @@ button {
   min-height: 420px;
   overflow: hidden;
   background: #080d11;
+}
+
+.studio-center-stack .bench-viewport {
+  min-height: 300px;
 }
 
 .optical-bench {
@@ -883,6 +896,256 @@ button {
   line-height: 1.55;
 }
 
+.spectrum-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #26323a;
+  border-radius: 8px;
+  background: #0d1318;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+}
+
+.spectrum-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 50px;
+  padding: 8px 13px;
+  border-bottom: 1px solid #23303a;
+  background: #10171d;
+}
+
+.spectrum-panel-heading h2 {
+  margin: 3px 0 0;
+  color: #e8eef2;
+  font-size: 0.9rem;
+  font-weight: 640;
+}
+
+.spectrum-model-badge {
+  padding: 5px 8px;
+  border: 1px solid #60583b;
+  border-radius: 999px;
+  color: #d8c585;
+  background: #211f16;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.59rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.spectrum-panel-body {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.7fr) minmax(205px, 0.8fr) minmax(205px, 0.75fr);
+  min-height: 245px;
+}
+
+.spectrum-plot-region,
+.spectrum-controls,
+.spectrum-telemetry {
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.spectrum-controls,
+.spectrum-telemetry {
+  overflow: auto;
+  border-left: 1px solid #202b32;
+}
+
+.spectrum-chart {
+  display: block;
+  width: 100%;
+  min-height: 180px;
+}
+
+.spectrum-chart-background {
+  fill: #080e12;
+  stroke: #26343d;
+}
+
+.spectrum-grid-line {
+  stroke: #1e2b33;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.spectrum-expected-path,
+.spectrum-preview-path {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.spectrum-expected-path {
+  stroke: #62d9f2;
+  stroke-width: 1.8px;
+}
+
+.spectrum-preview-path {
+  stroke: #efb95f;
+  stroke-width: 1px;
+  opacity: 0.78;
+}
+
+.spectrum-axis-label {
+  fill: #71818a;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+}
+
+.spectrum-axis-label--end {
+  text-anchor: end;
+}
+
+.spectrum-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 11px;
+  color: #81919a;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.61rem;
+}
+
+.spectrum-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.spectrum-legend i {
+  width: 14px;
+  height: 2px;
+}
+
+.spectrum-legend-expected {
+  background: #62d9f2;
+}
+
+.spectrum-legend-preview {
+  background: #efb95f;
+}
+
+.spectrum-unavailable {
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  min-height: 210px;
+  padding: 24px;
+  color: #7e8d96;
+  text-align: center;
+  font-size: 0.72rem;
+}
+
+.spectrum-unavailable strong {
+  color: #e2b66f;
+  font-size: 0.84rem;
+}
+
+.spectrum-controls {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+}
+
+.spectrum-control {
+  display: grid;
+  grid-template-columns: minmax(86px, 1fr) minmax(100px, 1.1fr);
+  align-items: center;
+  gap: 4px 7px;
+  color: #9eabb2;
+  font-size: 0.65rem;
+}
+
+.spectrum-control-input-wrap {
+  position: relative;
+}
+
+.spectrum-control-input {
+  width: 100%;
+  height: 27px;
+  padding: 0 7px;
+  border: 1px solid #31414b;
+  border-radius: 4px;
+  color: #d5e0e5;
+  background: #0a1116;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.62rem;
+}
+
+.spectrum-control-input-wrap .spectrum-control-input {
+  padding-right: 48px;
+}
+
+.spectrum-control-input-wrap small {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  color: #5f707a;
+  font-size: 0.51rem;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.spectrum-control-input[aria-invalid="true"] {
+  border-color: #bd6972;
+}
+
+.spectrum-control em {
+  grid-column: 1 / -1;
+  color: #e1848d;
+  font-size: 0.57rem;
+  font-style: normal;
+}
+
+.spectrum-qe-readout {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 4px;
+  color: #84949d;
+  font-size: 0.62rem;
+}
+
+.spectrum-qe-readout code {
+  color: #a9bac2;
+  font-size: 0.56rem;
+}
+
+.spectrum-telemetry {
+  display: grid;
+  align-content: start;
+  gap: 0;
+  margin: 0;
+}
+
+.spectrum-telemetry div {
+  display: grid;
+  grid-template-columns: minmax(76px, 0.8fr) minmax(110px, 1.3fr);
+  gap: 7px;
+  padding: 6px 0;
+  border-bottom: 1px solid #1c272e;
+}
+
+.spectrum-telemetry dt,
+.spectrum-telemetry dd {
+  margin: 0;
+  font-size: 0.62rem;
+}
+
+.spectrum-telemetry dt {
+  color: #72828b;
+}
+
+.spectrum-telemetry dd {
+  overflow-wrap: anywhere;
+  color: #b9c7cd;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  text-align: right;
+}
+
 @media (max-width: 900px) {
   .studio-toolbar {
     grid-template-columns: 1fr auto;
@@ -895,6 +1158,21 @@ button {
   .studio-workspace {
     grid-template-columns: minmax(0, 1fr);
     overflow: auto;
+  }
+
+  .studio-center-stack {
+    overflow: visible;
+  }
+
+  .spectrum-panel-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .spectrum-controls,
+  .spectrum-telemetry {
+    overflow: visible;
+    border-top: 1px solid #202b32;
+    border-left: 0;
   }
 
   .component-library,
@@ -935,6 +1213,11 @@ button {
 
   .bench-viewport {
     min-height: 360px;
+  }
+
+  .spectrum-panel-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .bench-statusbar {

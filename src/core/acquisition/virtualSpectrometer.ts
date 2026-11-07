@@ -168,30 +168,32 @@ export const calculateExpectedCcdSpectrum = (
   })
 }
 
-export interface RamanContextExpectedCcdInput {
+export interface RamanSpectrumAtSpectrometerInput {
   readonly context: RamanOpticalContext
   readonly material: RamanMaterial
   readonly axis: SpectrumAxis
   readonly excitation_wavelength_nm: number
   readonly spectrometer: VirtualSpectrometerConfiguration
+}
+
+export interface RamanContextExpectedCcdInput
+  extends RamanSpectrumAtSpectrometerInput {
   readonly detector: VirtualCcdConfiguration
 }
 
 /**
- * Phase 3C → 3B → 3D bridge. The Raman-domain spectrum is synthesized at the
- * Spectrometer input so component throughput is applied exactly once by CCD
- * conversion rather than being counted both in 3C and 3D.
+ * Phase 3C → 3B bridge at the Spectrometer input. Instrument broadening is
+ * applied here, while component/grating throughput remains owned by 3D.
  */
-export const calculateExpectedCcdSpectrumFromRamanContext = (
-  input: RamanContextExpectedCcdInput,
-): ExpectedCcdSpectrum => {
+export const synthesizeRamanSpectrumAtSpectrometerInput = (
+  input: RamanSpectrumAtSpectrometerInput,
+): ExpectedSpectrum => {
   const context = RamanOpticalContextSchema.parse(input.context)
   const material = RamanMaterialSchema.parse(input.material)
   const axis = SpectrumAxisSchema.parse(input.axis)
   const spectrometer = VirtualSpectrometerConfigurationSchema.parse(
     input.spectrometer,
   )
-  const detector = VirtualCcdConfigurationSchema.parse(input.detector)
 
   if (context.material_id !== material.id) {
     throw new RangeError('Raman context and material IDs must match.')
@@ -217,7 +219,7 @@ export const calculateExpectedCcdSpectrumFromRamanContext = (
 
   // Parsing here also protects the provisional focus contract at the boundary.
   RamanFocusContextSchema.parse(context.focus)
-  const ramanDomainSpectrum = synthesizeExpectedRamanSpectrum({
+  return synthesizeExpectedRamanSpectrum({
     material,
     excitation_wavelength_nm: input.excitation_wavelength_nm,
     axis,
@@ -238,10 +240,22 @@ export const calculateExpectedCcdSpectrumFromRamanContext = (
       },
     },
   })
+}
+
+/**
+ * Phase 3C → 3B → 3D bridge. Component throughput is applied exactly once by
+ * CCD conversion rather than being counted both in 3C and 3D.
+ */
+export const calculateExpectedCcdSpectrumFromRamanContext = (
+  input: RamanContextExpectedCcdInput,
+): ExpectedCcdSpectrum => {
+  const detector = VirtualCcdConfigurationSchema.parse(input.detector)
+  const ramanDomainSpectrum =
+    synthesizeRamanSpectrumAtSpectrometerInput(input)
 
   return calculateExpectedCcdSpectrum({
     raman_domain_spectrum: ramanDomainSpectrum,
-    spectrometer,
+    spectrometer: input.spectrometer,
     detector,
   })
 }

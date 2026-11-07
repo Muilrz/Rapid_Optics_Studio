@@ -1,11 +1,15 @@
 import { useStore } from 'zustand'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import {
+  DEFAULT_VIRTUAL_CCD_CONFIGURATION,
+  VirtualCcdConfigurationSchema,
+  type VirtualCcdConfiguration,
+} from '../core/acquisition'
+import {
   OpticalComponentSchema,
   OpticalSceneSchema,
   SimulationConfigurationSchema,
   Transform2DSchema,
-  traceOpticalScene,
   type ComponentId,
   type OpticalComponent,
   type OpticalComponentType,
@@ -50,12 +54,17 @@ import {
   DEFAULT_RAMAN_SCENE,
   DEFAULT_SIMULATION_CONFIGURATION,
 } from '../project/defaults/defaultRamanScene'
+import {
+  deriveStudioSimulation,
+  type StudioSpectrumSimulation,
+} from './derivedSimulation'
 
 export const STUDIO_HISTORY_LIMIT = 100
 
 export interface StudioAuthoritativeState {
   readonly scene: OpticalScene
   readonly simulationConfiguration: SimulationConfiguration
+  readonly detectorConfiguration: VirtualCcdConfiguration
   readonly revision: number
 }
 
@@ -84,6 +93,10 @@ export interface StudioViewState {
 
 export interface StudioDerivedState {
   readonly trace: TraceResult
+  readonly ramanContexts: ReturnType<
+    typeof deriveStudioSimulation
+  >['ramanContexts']
+  readonly spectrum: StudioSpectrumSimulation
   readonly sceneRevision: number
 }
 
@@ -144,6 +157,9 @@ export interface StudioState {
   readonly updateComponentParameters: (
     componentId: ComponentId,
     parameters: Readonly<Record<string, unknown>>,
+  ) => void
+  readonly setDetectorConfiguration: (
+    configuration: VirtualCcdConfiguration,
   ) => void
   readonly setGridVisible: (visible: boolean) => void
   readonly setViewportSize: (width_px: number, height_px: number) => void
@@ -225,11 +241,20 @@ const componentWithoutId = (component: OpticalComponent): ClipboardComponent => 
 export const createStudioStore = (
   initialScene: OpticalScene = DEFAULT_RAMAN_SCENE,
   simulationConfiguration: SimulationConfiguration = DEFAULT_SIMULATION_CONFIGURATION,
+  detectorConfiguration: VirtualCcdConfiguration = DEFAULT_VIRTUAL_CCD_CONFIGURATION,
 ): StudioStore => {
   const scene = OpticalSceneSchema.parse(initialScene)
   const validatedConfiguration = SimulationConfigurationSchema.parse(simulationConfiguration)
+  const validatedDetectorConfiguration =
+    VirtualCcdConfigurationSchema.parse(detectorConfiguration)
   const idAllocator = createComponentIdAllocator(scene)
   const initialCamera = fitWorldBounds(getSceneWorldBounds(scene), INITIAL_VIEWPORT)
+  const initialSimulation = deriveStudioSimulation({
+    scene,
+    simulationConfiguration: validatedConfiguration,
+    detectorConfiguration: validatedDetectorConfiguration,
+    sourceRevision: 0,
+  })
 
   return createStore<StudioState>()((set, get) => {
     const commitScene = (
@@ -240,9 +265,16 @@ export const createStudioStore = (
       editor: StudioEditorState = current.editor,
     ) => {
       const revision = current.authoritative.revision + 1
-      const trace = retrace
-        ? traceOpticalScene(nextScene, current.authoritative.simulationConfiguration)
-        : current.derived.trace
+      const derived = retrace
+        ? deriveStudioSimulation({
+            scene: nextScene,
+            simulationConfiguration:
+              current.authoritative.simulationConfiguration,
+            detectorConfiguration:
+              current.authoritative.detectorConfiguration,
+            sourceRevision: revision,
+          })
+        : current.derived
       const history = current.history.activeTransaction
         ? current.history
         : Object.freeze({
@@ -256,7 +288,9 @@ export const createStudioStore = (
           })
       set({
         authoritative: Object.freeze({ ...current.authoritative, scene: nextScene, revision }),
-        derived: Object.freeze({ trace, sceneRevision: revision }),
+        derived: retrace
+          ? Object.freeze({ ...derived, sceneRevision: revision })
+          : Object.freeze({ ...current.derived, sceneRevision: revision }),
         editor,
         history,
       })
@@ -272,7 +306,14 @@ export const createStudioStore = (
       set({
         authoritative: Object.freeze({ ...current.authoritative, scene: nextScene, revision }),
         derived: Object.freeze({
-          trace: traceOpticalScene(nextScene, current.authoritative.simulationConfiguration),
+          ...deriveStudioSimulation({
+            scene: nextScene,
+            simulationConfiguration:
+              current.authoritative.simulationConfiguration,
+            detectorConfiguration:
+              current.authoritative.detectorConfiguration,
+            sourceRevision: revision,
+          }),
           sceneRevision: revision,
         }),
         editor: reconcileEditorWithScene(current.editor, nextScene),
@@ -383,7 +424,12 @@ export const createStudioStore = (
     }
 
     return {
-      authoritative: Object.freeze({ scene, simulationConfiguration: validatedConfiguration, revision: 0 }),
+      authoritative: Object.freeze({
+        scene,
+        simulationConfiguration: validatedConfiguration,
+        detectorConfiguration: validatedDetectorConfiguration,
+        revision: 0,
+      }),
       editor: Object.freeze({
         ...EMPTY_STUDIO_SELECTION,
         snapEnabled: true,
@@ -398,7 +444,7 @@ export const createStudioStore = (
         gridVisible: true,
       }),
       derived: Object.freeze({
-        trace: traceOpticalScene(scene, validatedConfiguration),
+        ...initialSimulation,
         sceneRevision: 0,
       }),
       history: EMPTY_HISTORY,
@@ -410,7 +456,14 @@ export const createStudioStore = (
         set({
           authoritative: Object.freeze({ ...current.authoritative, scene: validatedScene, revision }),
           derived: Object.freeze({
-            trace: traceOpticalScene(validatedScene, current.authoritative.simulationConfiguration),
+            ...deriveStudioSimulation({
+              scene: validatedScene,
+              simulationConfiguration:
+                current.authoritative.simulationConfiguration,
+              detectorConfiguration:
+                current.authoritative.detectorConfiguration,
+              sourceRevision: revision,
+            }),
             sceneRevision: revision,
           }),
           editor: Object.freeze({
@@ -744,6 +797,35 @@ export const createStudioStore = (
           true,
           'Edit optical parameters',
         )
+      },
+      setDetectorConfiguration: (configuration) => {
+        const current = get()
+        const validated = VirtualCcdConfigurationSchema.parse(configuration)
+        if (
+          JSON.stringify(validated) ===
+          JSON.stringify(current.authoritative.detectorConfiguration)
+        ) {
+          return
+        }
+        const revision = current.authoritative.revision + 1
+        set({
+          authoritative: Object.freeze({
+            ...current.authoritative,
+            detectorConfiguration: validated,
+            revision,
+          }),
+          derived: Object.freeze({
+            ...deriveStudioSimulation({
+              scene: current.authoritative.scene,
+              simulationConfiguration:
+                current.authoritative.simulationConfiguration,
+              detectorConfiguration: validated,
+              sourceRevision: revision,
+              trace: current.derived.trace,
+            }),
+            sceneRevision: revision,
+          }),
+        })
       },
       setGridVisible: (gridVisible) =>
         set((state) => ({ view: Object.freeze({ ...state.view, gridVisible }) })),
