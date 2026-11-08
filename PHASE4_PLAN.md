@@ -1,6 +1,6 @@
 # Rapid Optics Studio V1 — Phase 4 Acquisition Implementation Plan
 
-> **Status:** 4A～4E及Numerical Metrics Closure工程完成；总PRD Exit Gate **未通过**（默认F峰饱和，线性Peak SNR不适用）<br>
+> **Status:** Phase 4 — Acquisition **Completed**；合法0.1mW场景的1s×20正式F及G验收通过，默认饱和边界保留<br>
 > **Date:** 2026-11-08  
 > **Depends on:** Phase 3 — Raman + Virtual CCD  
 > **Roadmap:** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) 第 3.2、4 节  
@@ -160,7 +160,7 @@ Q4 Approved：每个 PRD 指标字段必须存在。有可靠定义时保存有�
 - `src/core/raman/couplingContracts.ts` / `opticalCoupling.ts` 已定义 focus efficiency、`raman_return.detected_effective_excitation_power_mw`、`rayleigh_return.detected_effective_leakage_power_mw`。Q4-R Approved：分别映射 raman_power/rayleigh_leakage，保留 mW、源字段、context 模型版本及 detected effective power proxy 的明确语义，不宣称绝对 Raman 辐射功率；校验值与 frozen context 一致。
 - `contracts.ts` / `virtualSpectrometer.ts` 的 expected saturation 为 full-well 语义（>=）；`previewExposure.ts` 的 high clipping 是 unclipped counts 严格大于 full well。分别保留，saturation.evidence 固定标明 expected-mask-and-per-exposure-clipping。
 - 4A/原4F时未实现数值定义；此次Numerical Metrics Closure按既有数据与标准定义实现有限模型指标，详见4.7。旧Run的Undefined及reason作为历史记录保持不变，不事后重算。
-- **当前PRD差异：** §73默认1s×20的Raman峰饱和，当前线性Peak SNR定义不适用，仍保存Undefined。未修改默认增益/full well或PRD来使验收通过；总Exit Gate继续未通过，原因已从“缺少定义”收敛为“默认F饱和域无有效线性SNR”。
+- **最终PRD核对：** §73只固定Integration=1s、N=20，未指定默认光路或10mW功率。此前将默认10mW饱和视作F必然阻塞，属于场景约束过严；4.8使用现有Laser 0.1mW合法场景完成F，未改公式/clipping/Full Well/PRD。默认饱和的Undefined仍是正确边界行为，不再阻塞可执行的正式F。
 
 ### 4.6 4A 实际契约与 PRD 字段落点
 
@@ -184,6 +184,8 @@ Raw的N>1均值和真实随机draws已由4B实现并测试；4A契约层只校�
 
 ### 4.7 Numerical Metrics Closure（2026-11-08）
 
+本节保留6d1f41d时的数值闭环证据与当时阻塞判断；正式F场景约束核正和最新Exit Gate结论见4.8。
+
 本次用户授权直接完成有可靠定义的指标，不重做4B～4E或全面Decision Review。新增numericalMetrics.ts，扩展metrics availability联合及证据校验；不改Expected/Preview/RNG、raw/逐帧数据、调度/取消机制或依赖。每个可用数值携带独立指标版本，保持旧Undefined契约可读，不自动覆盖旧Run。
 
 | 指标 | 已有输入与实际定义 | 有效域 / 缺失信息 |
@@ -200,6 +202,27 @@ Raw的N>1均值和真实随机draws已由4B实现并测试；4A契约层只校�
 **实际浏览器定向核验：** 0.01s×20：Peak SNR≈133.65（521.12cm⁻¹）、OD≈7.4867（532nm）；改live integration后旧指标保持不变。1s×20：OD仍≈7.4867，Peak SNR明确因saturated/clipped而Undefined；页面console warning/error为空。原4F的采集/取消验收不重做，记录保留。
 
 **Exit Gate：仍未通过。** 数值指标在有限模型有效域内已实现，但默认PRD F未获得有效线性Peak SNR；不以Undefined、降低integration或改变默认full well来自动宣称达标。
+
+### 4.8 Phase 4 最终验收收尾（2026-11-08）
+
+**结论：Phase 4 Exit Gate通过，Completed。** PRD §73没有“默认光路/默认Laser功率”前提。仅将现有Laser功率10→0.1mW即可在1s×20获得未饱和Raman峰，不需要改变探测器动态范围或科学算法。0.01s×20只保留为历史指标有效域检查，**不作为此次F验收替代**。
+
+**可复现场景：** tests/fixtures/phase4AcceptanceScene.ts。原7元件默认布局、坐标/角度/光学参数（除Laser功率）、Silicon、532nm保持原样；Laser=0.1mW，Sample有效激发约0.099mW；Detector Integration=1s、Gain=340、Full Well=60000、Read Noise=3、Dark=0.01，均为既有默认值。它是低激发功率的合法实验配置，不修改应用默认Scene/Detector或任何模型常数。
+
+**真实UI步骤与记录（Vite/in-app Chromium，UTC）：**
+
+1. 打开原默认场景，在已有Laser Inspector把Power改为0.1mW并提交。读取既有Detector控件确认Integration=1、Gain=340、Full Well=60000；未触及0.01s。
+2. Average N=20，真实Acquire，运行至20/20自动结束。Run=14f714ef-e9a5-45cc-9b0f-802f06448ee7，started_at=2026-11-08T07:08:48.982Z，completed_at=07:08:51.205Z，独立seed=2818150828（模拟计数时间为1s/帧，墙钟仍为已批准的加速调度）。
+3. 保存的Peak SNR≈133.65，Raman bin=521.12cm⁻¹，signal≈902.09 counts/bin，mean RMS≈6.7495；Rayleigh path OD≈7.4867、λ=532nm、T≈3.26032e−8，availability均available。expected saturated bins=0，high-clipped exposures=0；选定峰bin的逐帧high/low clipping在回归中均为false。
+4. 结果审计读取真实已存数组维度：20 retained frames × 1400 bins，Raw mean 1400 bins、N=20；冻结Laser=0.1mW/532nm、Detector full well=60000。只增加这两项只读快照/数据维度展示，未改采集流程。
+5. 将live Laser恢复10mW：旧Run整个已渲染快照/结果HTML保持相同。再次1s×20采集默认饱和场景，得到20帧及完整mean，但Peak SNR=Undefined且原因明确saturated/clipped，OD仍available；没有提高Full Well或忽略clipping。
+6. 选择原低功率历史Run，完整结果/快照HTML与Raw SVG path仍相同。恢复live功率0.1mW，在同一合法场景启动1s×20、接受2帧后把Mirror X=200→210：立即Cancelled 2/20并提示配置变化，保留帧、不创建完整mean；Completed保持2条，原F数据不变。结合原4F的G及26项取消矩阵，G通过。
+
+页面console warning/error捕获为空。UI检查的是实际保存的数据维度和冻结摘要；自动回归另逐bin以直接求和核对20帧均值，并在live修改、Undo/Redo后对**整个Run深度比较**，覆盖未全部展开的snapshot/逐帧数据。
+
+**回归与验证：** 新增合法F fixture及正向测试；增强原默认饱和回归，断言默认Laser仍10mW、Detector不变、实际饱和/clipping存在而SNR不得伪造。受影响6文件/56项通过（F/G、runtime、取消、指标、渲染及状态smoke），lint/build/diff-check通过。**本次未运行Full Tests**：按用户明确要求，公共科学核心/契约/全局状态机制未改，只改只读审计UI、验收fixture/测试和阶段状态；沿用6d1f41d的60文件490项完整回归作为科学基线，不能把该历史结果冒称本次执行。
+
+既有模型有效域/硬件标定限制、session内存记录与预算均保持；不宣称真实硬件计量，不扩展Phase5～8。历史“默认10mW饱和”检查继续保留，不改写PRD或弱化指标数值验收。
 
 ## 5. State Machine
 
@@ -340,9 +363,9 @@ Current acquisition was stopped.
 
 ### Phase 4F — Regression & Phase Exit Review
 
-以下为d557fe4历史验证记录；此次指标闭环及最新490项验证见4.7，不覆盖历史证据。
+以下为d557fe4历史验证记录；指标闭环及490项验证见4.7，最终F/G通过与Completed状态见4.8，不覆盖历史证据。
 
-**状态：** 工程验证和浏览器评审已执行；**总 PRD Exit Gate 未通过**，不标记Phase4 Completed。
+**当时状态（d557fe4）：** 工程验证和浏览器评审已执行；当时总 PRD Exit Gate 未通过。最新通过结论见4.8。
 
 **自动验证（2026-11-08）：**
 
@@ -398,19 +421,19 @@ Current acquisition was stopped.
 
 Phase 4 完成必须同时满足：
 
-- [ ] 影响契约与用户行为的 Open Questions 已审核并写回决策，不以隐式假设实现。
-- [ ] 4A～4F 各自独立验收完成。
+- [x] 影响契约与用户行为的 Open Questions 已审核并写回决策，不以隐式假设实现。
+- [x] 4A～4F 各自独立验收完成。
 - [x] Single N=1、Average N>1 使用新 noisy exposures，有限 N 自动结束。
 - [x] Instrument Snapshot、每次 exposure 原始 counts 与 raw mean 深层不可变，不被覆盖、重新生成或处理；Cancelled 保留已接受帧、不生成完整结果、不进入 Completed Runs。
-- [ ] AcquisitionRun 满足 PRD §42，保存 snapshot、expected/raw、N/integration、所有必需指标字段（Approved availability 策略）和可追溯版本；§4.5 PRD 数值指标验收差异已经明确审核。
+- [x] AcquisitionRun 满足 PRD §42，保存 snapshot、expected/raw、N/integration、所有必需指标字段（Approved availability 策略）和可追溯版本；§4.5 PRD 数值指标验收差异已经明确审核。
 - [x] 配置变更立即停止并提示，包含非 Inspector 编辑路径；无跨状态数据、无迟到提交污染。
 - [x] Preview 不保存成正式数据，live expected 与历史 expected/raw 来源清楚；共享噪声算法且 Phase 3 回归不变。
-- [ ] PRD F/G 在自动测试和实际浏览器通过，编辑器可在采集中响应修改。
+- [x] PRD F/G 在自动测试和实际浏览器通过，编辑器可在采集中响应修改。
 - [x] `npm run test`、`npm run lint`、`npm run build` 全部实际通过，浏览器验收有记录。
 - [x] 没有提前实现 Phase 5 processing/完整图表、Phase 6 3D、Phase 7 I/O 或 Phase 8 diagnostics/E2E。
 - [x] 状态文档按实际完成情况更新，随后停止，不自动推进下一阶段。
 
-未勾选项保留原要求：4A～4E和F/G工程路径已通过；4.7已补齐有效域内模型数值，默认F的饱和Peak SNR仍Undefined，不能自动视为数值达标。
+所有Phase4项按实际证据通过：4.8正式F固定1s/N20且保存有限Peak SNR，G正确取消；默认10mW的饱和Undefined继续验证。Full Tests实际执行证据为科学基线6d1f41d的60/490，本次遵用户收尾验证要求仅运行受影响6/56、lint/build/diff-check，未谎称重跑全量。通过的是V1既定Simplified/First-order模型验收，不是未实现的硬件标定。
 
 ## 9. Risks / Open Questions
 
@@ -423,7 +446,7 @@ Phase 4 完成必须同时满足：
 | Q1/Q1-R — Implemented | PRD要求保存mean和不可变Raw；批准额外逐帧留存。保留counts/axis/index/clipping和mean，不要求noise arrays。会话64MiB估算预算，超量拒绝、不驱逐旧记录 | 资源估算不保证峰值heap |
 | Q2/Q2-R — Implemented | 配置变化必须停止；Cancelled保存cancelled_at、原因和已接受帧，无完整mean，不入Completed。Error只runtime保留帧与原因 | 无手动Stop UI或持久化Error Run |
 | Q3/Q3-R — Implemented | Single=1、Average>1；integration有限正数，N正安全整数、默认20。100ms分步加速模拟，integration只影响counts；按实际数据规模和已存记录预检预算 | 没有固定产品N上限或真实硬件时间承诺 |
-| Q4/Q4-R — Implemented with domain limits / Open F | 4.7已实现版本化路径OD及N均值预测Peak SNR，保持功率proxy与saturation证据；旧Undefined不重算。无路径/零T/无Raman峰/饱和或裁剪仍Undefined | 默认F因峰饱和未通过，不以模型数值冒充硬件标定 |
+| Q4/Q4-R — Closed for Phase 4 model scope | 4.7模型指标及4.8合法0.1mW的1s×20正式F通过；默认10mW饱和仍Undefined，旧Run不重算 | 保留有效域和硬件标定限制，不把默认场景强加给§73 |
 | Q5/Q5-R — Implemented | 每Run crypto独立uint32 seed含0，测试可注入；单流、从0编号、4 draws/bin，算法/消费顺序版本化 | 复现限定同实现/环境，无用户seed UI |
 | Q6/Q6-R — Implemented | 无独立选择器。有实际激发时须只有一个actual-hit context，否则仅一个enabled sample context；source与返回谱仪必须唯一，fallback身份须唯一；多source/context/谱仪聚合拒绝 | dark-only仅复用实际CCD可执行配置，不伪造信号；拒绝选择歧义是已批准工程决策 |
 | Q7/Q7-R — Implemented | 科学投影为身份依据、revision仅辅助。所有公共提交原子取消、回调重检；实际科学Undo/Redo/rollback取消。忽略name/metadata/view/selection/clipboard copy/lock/history记账，-0与0等价 | 比较投影不重验已失效lineage；复制后冻结，不冻结live state |
@@ -431,7 +454,7 @@ Phase 4 完成必须同时满足：
 | Q9/Q9-R — Implemented | PRD timestamp唯一映射started_at，无双份时间。UTC ISO、可注入Clock、UUID；clock/schema失败为可读invalid-start/error，不伪填倒退完成时间 | Cancelled只用cancelled_at，已有数据保留 |
 | Q10 — Implemented minimum | 单active Run，running禁用/拒绝重复Acquire，终态可新建；旧回调失效；历史最小选择completed/cancelled，不删清空 | 记录仅session内存，刷新清空；未做Phase7持久化 |
 
-PRD与工程决定保持区分：模型OD/预测SNR的限定定义、逐帧留存、seed/时间与资源预算均明确记录；不修改PRD。当前数值差异是默认F峰饱和导致线性SNR不适用，不能以null/reason自动关闭。
+PRD与工程决定保持区分：§73只约束1s/N20，不限定默认功率。4.8以真实合法实验场景获得有限数值通过F，而非以null/reason关闭。模型/硬件标定差异仍明确保留，不修改PRD。
 
 ### 9.2 工程风险与控制
 
@@ -445,4 +468,4 @@ PRD与工程决定保持区分：模型OD/预测SNR的限定定义、逐帧留�
 | 必需 Run 指标缺口被隐藏在“Phase 3 已完成”摘要中 | 按 Q4 复用已有定义，缺失定义保存 null/reason 并报告验收差异，不伪造数值 |
 | 领域记录过早变成完整 Project schema | 仅实现 Acquisition 所需契约；Phase 7 才确定外部文件 schemaVersion/migration |
 
-本次Numerical Metrics Closure到此停止。4B～4E未重做；指标有效域已实现并验证，默认F峰饱和的数值差异保留，总Exit Gate仍未通过，不进入Phase5。
+Phase4最终验收到此完成并停止。F/G及阶段Exit Gate通过；默认饱和与模型有效域回归保留，无科学算法变更，不进入Phase5。

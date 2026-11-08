@@ -29,6 +29,8 @@ describe('Phase 4E acquisition rendering', () => {
     expect(markup).toContain('seed 0')
     expect(markup).toContain(run.input.instrument_snapshot.target.spectrometer_component_id)
     expect(markup).toContain('2026-11-08T00:00:00.000Z')
+    expect(markup).toContain('10 mW at 532 nm')
+    expect(markup).toContain('2 retained frames × 2 bins; raw mean 2 bins, N=2')
   })
 
   it('shows k/N, retained cancelled frames and no complete result chart', () => {

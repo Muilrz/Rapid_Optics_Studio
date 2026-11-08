@@ -26,6 +26,7 @@ export function AcquisitionRunInspector({ run }: { readonly run: AcquisitionRun 
   const input = run.input
   const snapshot = input.instrument_snapshot
   const expected = input.expected_spectrum
+  const laser = snapshot.optical_scene.components.find((component) => component.id === snapshot.target.laser_component_id && component.type === 'laser')
   return <article className="acquisition-result" data-acquisition-run={input.id}>
     <h3>{run.status === 'completed' ? 'Raw acquired mean' : 'Cancelled acquisition'} · {input.request.mode}</h3>
     <p>{input.id} · {run.exposures.length}/{input.request.number_of_exposures} exposures · {snapshot.detector.integration_time_s} s each · counts/bin</p>
@@ -50,12 +51,14 @@ export function AcquisitionRunInspector({ run }: { readonly run: AcquisitionRun 
         <dt>{run.status === 'completed' ? 'Completed' : 'Cancelled'} (UTC)</dt><dd>{run.status === 'completed' ? run.completed_at : run.cancelled_at}</dd>
         <dt>Material</dt><dd>{snapshot.material.name} · {snapshot.material.id}</dd>
         <dt>Laser / Sample</dt><dd>{snapshot.target.laser_component_id} / {snapshot.target.sample_component_id}</dd>
+        <dt>Laser at acquisition</dt><dd data-snapshot-laser>{laser?.type === 'laser' ? `${laser.parameters.power_mw} mW at ${laser.parameters.wavelength_nm} nm` : 'Unavailable in snapshot'}</dd>
         <dt>Spectrometer</dt><dd>{snapshot.target.spectrometer_component_id}</dd>
         <dt>Path / Focus efficiency</dt><dd>{snapshot.context.path_state} / {snapshot.context.focus.efficiency.toPrecision(5)}</dd>
         <dt>Detector at acquisition</dt><dd>Full well {snapshot.detector.full_well_counts} counts; gain {snapshot.detector.gain_counts_per_photoelectron}; read noise {snapshot.detector.read_noise_rms_counts} counts; dark {snapshot.detector.dark_current_counts_per_second_per_bin} counts/s/bin</dd>
         <dt>RNG provenance</dt><dd>{input.rng.algorithm_version}, seed {input.rng.seed_uint32}; {input.rng.sampling_algorithm_version}; {input.rng.consumption_order_version}</dd>
         <dt>Scientific model versions</dt><dd>{Object.values(snapshot.simulation_model_version).join(' · ')}</dd>
         {run.status === 'completed' && <>
+          <dt>Retained CCD data</dt><dd data-acquisition-data-shape>{run.exposures.length} retained frames × {expected.axis.values_cm_1.length} bins; raw mean {run.acquired_spectrum.counts.length} bins, N={run.acquired_spectrum.number_of_exposures}</dd>
           <dt>Raman effective power proxy</dt><dd>{run.metrics.raman_power.value.toPrecision(5)} mW · {run.metrics.raman_power.source} · {run.metrics.raman_power.model_version}</dd>
           <dt>Rayleigh leakage proxy</dt><dd>{run.metrics.rayleigh_leakage.value.toPrecision(5)} mW · {run.metrics.rayleigh_leakage.source} · {run.metrics.rayleigh_leakage.model_version}</dd>
           <dt>Power semantics</dt><dd>Detected effective power proxies; not absolute Raman radiant power.</dd>

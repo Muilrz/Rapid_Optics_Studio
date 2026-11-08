@@ -115,6 +115,11 @@ are handled explicitly. Raw is never background-subtracted or modified.
 Missing inputs for calibrated physical claims include wavelength/AOI/polarization
 dependent filter curves and validated detector conversion/noise calibration.
 These do not prevent the explicitly limited model metrics, but cannot be
-invented to claim measured filter OD or hardware SNR. The default 1s/N=20
-Raman peak is saturated, so final PRD F numerical acceptance remains unpassed.
+invented to claim measured filter OD or hardware SNR. The default 10mW,
+1s/N=20 Raman peak is saturated and correctly keeps SNR undefined. PRD F fixes
+integration and N, not the optical layout/power: the accepted scene uses the
+existing Laser at 0.1mW, all other layout/CCD settings unchanged (1s/N=20,
+gain 340, full well 60000). It yields an unclipped Raman peak and finite model
+metrics. See tests/fixtures/phase4AcceptanceScene.ts and PHASE4_PLAN.md §4.8
+for reproducible acceptance and provenance. No default or formula was changed.
 Power readings retain their mW/source/model and effective-proxy semantics.
