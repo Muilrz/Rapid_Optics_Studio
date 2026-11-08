@@ -345,15 +345,32 @@ When expected behavior must change, explain why.
 
 ## 10. Validation
 
-For normal code changes, run the relevant repository validation.
+Use a layered testing strategy to preserve the full Exit Gate requirements while avoiding unnecessary repeated validation during development.
 
-The default completion gate is:
+During development iterations:
+
+- prioritize unit tests for affected modules and related regression tests;
+- do not run the full suite after every edit;
+- expand coverage when changing public core contracts, cross-module APIs, or global state mechanisms; run a full regression early when warranted;
+- after a failure, investigate and rerun the failing tests first instead of repeatedly running the entire suite without a reason.
+
+When each independent implementation sub-phase (such as 4A, 4B, or 4C) is complete and ready for submission and acceptance, run the full completion gate once against the final code:
 
 ```shell
 npm run test
 npm run lint
 npm run build
 ```
+
+Repeat or broaden validation only when subsequent changes, failures, or unresolved concerns justify it. Full testing is required at each independent sub-phase gate, not only at the end of the overall phase. Preserve any additional checks required by the applicable phase plan.
+
+For documentation-only changes, normally run only:
+
+```shell
+git diff --check
+```
+
+Full engineering validation is not normally required for documentation-only changes.
 
 For changes affecting interactive runtime behavior, also inspect the application through:
 
@@ -477,13 +494,16 @@ Describe tests added or updated.
 
 ### Validation
 
-Report the actual result of relevant commands, normally:
+Report these validation categories separately, including the commands or scope and their actual results:
 
 ```text
-npm run test
-npm run lint
-npm run build
+Targeted Tests
+Full Tests (npm run test)
+Lint (npm run lint)
+Build (npm run build)
 ```
+
+Explicitly mark any category that was not run and explain why; never report it as passed. Also report `git diff --check` and any other applicable Exit Gate checks.
 
 ### Architectural impact
 
