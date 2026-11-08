@@ -248,6 +248,8 @@ Current acquisition was stopped.
 
 ### Phase 4B — Exposure Reuse, Mean & Metrics
 
+**实施记录（2026-11-08）：** 已完成共享 CCD realization、独立连续 RNG、逐帧 immutable counts、稳定算术均值和既有 proxy/undefined 指标。旧 Preview API/算术/消费顺序不变。3 个相关测试文件62项通过；后续连续实施已获用户授权，full test/lint/build 统一在4F执行。
+
 **依赖：** 4A；遵循 Q1/Q4/Q5 Approved，相关 Open 先收口。
 
 **工作：** 复用共享 CCD realization，保留 Preview API；建立 acquisition adapter、独立 RNG 流、平均与经审核的指标纯函数。不启动 store runtime。

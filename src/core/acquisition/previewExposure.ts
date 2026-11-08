@@ -8,19 +8,11 @@ import {
   type ExpectedCcdSpectrum,
   type SimulatedCcdPreviewExposure,
 } from './contracts'
-import { RAMAN_SANDBOX_NOISE_PARAMETERS } from './modelParameters'
+import { realizeCcdCounts } from './ccdRealization'
 import {
   createMulberry32RandomNumberGenerator,
-  sampleStandardNormal,
   type RandomNumberGenerator,
 } from './rng'
-
-const finiteValue = (value: number, label: string): number => {
-  if (!Number.isFinite(value)) {
-    throw new RangeError(`${label} must be finite.`)
-  }
-  return value
-}
 
 /**
  * Generates one noisy CCD preview exposure. This is not an acquisition run,
@@ -34,41 +26,8 @@ export const simulateCcdPreviewExposure = (
   const rngProvenance = RandomNumberGeneratorProvenanceSchema.parse(
     random.provenance,
   )
-  const countingNoise: number[] = []
-  const readNoise: number[] = []
-  const unclippedCounts: number[] = []
-  const counts: number[] = []
-  const clippedLow: boolean[] = []
-  const clippedHigh: boolean[] = []
+  const { countingNoise, readNoise, unclippedCounts, counts, clippedLow, clippedHigh } = realizeCcdCounts(expected, random)
   const maximumCounts = expected.detector.full_well_counts
-
-  for (const expectedCounts of expected.expected_counts) {
-    const countingSigma = Math.sqrt(
-      Math.max(
-        expectedCounts,
-        RAMAN_SANDBOX_NOISE_PARAMETERS.counting_variance_floor_counts,
-      ),
-    )
-    const countingNoiseValue = finiteValue(
-      countingSigma * sampleStandardNormal(random),
-      'Counting-noise realization',
-    )
-    const readNoiseValue = finiteValue(
-      expected.detector.read_noise_rms_counts * sampleStandardNormal(random),
-      'Read-noise realization',
-    )
-    const unclipped = finiteValue(
-      expectedCounts + countingNoiseValue + readNoiseValue,
-      'Unclipped preview count',
-    )
-
-    countingNoise.push(countingNoiseValue)
-    readNoise.push(readNoiseValue)
-    unclippedCounts.push(unclipped)
-    counts.push(Math.min(maximumCounts, Math.max(0, unclipped)))
-    clippedLow.push(unclipped < 0)
-    clippedHigh.push(unclipped > maximumCounts)
-  }
 
   return SimulatedCcdPreviewExposureSchema.parse({
     kind: 'simulated-ccd-preview-exposure',
