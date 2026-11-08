@@ -2,6 +2,7 @@ import { useStore } from 'zustand'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import {
   DEFAULT_VIRTUAL_CCD_CONFIGURATION,
+  type AcquisitionRequest,
   VirtualCcdConfigurationSchema,
   type VirtualCcdConfiguration,
 } from '../core/acquisition'
@@ -58,6 +59,8 @@ import {
   deriveStudioSimulation,
   type StudioSpectrumSimulation,
 } from './derivedSimulation'
+import { createAcquisitionController, initialAcquisitionState,
+  type AcquisitionServices, type StudioAcquisitionState } from './acquisitionRuntime'
 
 export const STUDIO_HISTORY_LIMIT = 100
 
@@ -123,6 +126,9 @@ export interface ComponentTransformUpdate {
 }
 
 export interface StudioState {
+  readonly acquisition: StudioAcquisitionState
+  readonly startAcquisition: (request: AcquisitionRequest) => boolean
+  readonly cancelAcquisition: (reason: string) => void
   readonly authoritative: StudioAuthoritativeState
   readonly editor: StudioEditorState
   readonly view: StudioViewState
@@ -242,6 +248,7 @@ export const createStudioStore = (
   initialScene: OpticalScene = DEFAULT_RAMAN_SCENE,
   simulationConfiguration: SimulationConfiguration = DEFAULT_SIMULATION_CONFIGURATION,
   detectorConfiguration: VirtualCcdConfiguration = DEFAULT_VIRTUAL_CCD_CONFIGURATION,
+  acquisitionServices: AcquisitionServices = {},
 ): StudioStore => {
   const scene = OpticalSceneSchema.parse(initialScene)
   const validatedConfiguration = SimulationConfigurationSchema.parse(simulationConfiguration)
@@ -257,6 +264,8 @@ export const createStudioStore = (
   })
 
   return createStore<StudioState>()((set, get) => {
+    const acquisition = createAcquisitionController(() => get().acquisition,
+      (state) => set({ acquisition: state }), () => get().authoritative, acquisitionServices)
     const commitScene = (
       current: StudioState,
       nextScene: OpticalScene,
@@ -424,6 +433,9 @@ export const createStudioStore = (
     }
 
     return {
+      acquisition: initialAcquisitionState(),
+      startAcquisition: acquisition.start,
+      cancelAcquisition: acquisition.cancel,
       authoritative: Object.freeze({
         scene,
         simulationConfiguration: validatedConfiguration,

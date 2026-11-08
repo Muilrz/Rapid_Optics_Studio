@@ -264,6 +264,8 @@ Current acquisition was stopped.
 
 ### Phase 4C — Acquisition Runtime & Atomic Completion
 
+**实施记录（2026-11-08）：** 已完成唯一目标解析、冻结输入、idle/running/completed/cancelled/error、分步 scheduler、注入 clock/seed、逐帧接受校验、有限 N 自动结束和原子完成。running 拒绝重启，终态可新建；取消保留帧，error 仅 runtime。2 个相关文件16项测试通过，含 N=1/20、迟到/重复回调、失败恢复；完整验证统一在4F。默认每100ms让出事件循环，integration仅为模拟计数时间，不声称真实硬件等待。
+
 **依赖：** 4A、4B；Q2/Q3/Q9 已批准部分及剩余 Open、Q10 确认。
 
 **工作：** 增加独立 runtime 和 completed records 边界、可测试 scheduler/clock/seed 接口、start/exposure/complete/error 转移及一次性完成提交。尚不提供正式 UI 入口；先验证取消事件/token 基础协议，完整编辑入口接线在 4D。
