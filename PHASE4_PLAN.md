@@ -296,6 +296,8 @@ Current acquisition was stopped.
 
 ### Phase 4E — Acquisition UI & Result Inspection
 
+**实施记录（2026-11-08）：** Single/Average 默认20、Acquire、权威 integration 读数、k/N、completed/cancelled/error、历史选择、冻结expected/raw和snapshot/指标摘要已实现。取消记录不画完整mean；SNR/OD明确Undefined。4项渲染测试及既有Spectrum渲染回归通过。无手动Stop/删除/导出，Preview继续独立随设计派生；真实浏览器与全量验证在4F进行。
+
 **依赖：** 4D；Q2/Q3/Q6/Q8/Q10 相关交互已确定。
 
 **工作：** Single/Average 模式、N、现有 integration 控件、Acquire、k/N、终态原因；查看 completed Run 的 raw、frozen expected 与 snapshot 摘要。最小记录选择供检查，不实现谱库管理或完整多谱分析。

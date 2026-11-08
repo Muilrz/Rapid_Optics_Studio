@@ -184,7 +184,7 @@ button {
 
 .studio-center-stack {
   display: grid;
-  grid-template-rows: minmax(360px, 1.45fr) minmax(300px, 1fr);
+  grid-template-rows: minmax(360px, 1.45fr) minmax(300px, 1fr) auto;
   gap: 12px;
   min-width: 0;
   min-height: 0;
@@ -972,7 +972,8 @@ button {
 }
 
 .spectrum-expected-path,
-.spectrum-preview-path {
+.spectrum-preview-path,
+.spectrum-raw-path {
   fill: none;
   stroke-linejoin: round;
   stroke-linecap: round;
@@ -989,6 +990,23 @@ button {
   stroke-width: 1px;
   opacity: 0.78;
 }
+
+.spectrum-raw-path { stroke: #87dfb7; stroke-width: 1.6; fill: none; }
+.spectrum-legend-raw { background: #87dfb7; }
+.acquisition-body { padding: 12px; color: #bfccd4; font-size: 0.78rem; }
+.acquisition-controls { display: flex; gap: 14px; align-items: end; flex-wrap: wrap; }
+.acquisition-controls .spectrum-control { min-width: 130px; }
+.acquisition-integration { line-height: 1.6; }
+.acquisition-integration small, .acquisition-note { color: #8fabb8; }
+.acquisition-status { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 0; }
+.acquisition-status[data-acquisition-status="cancelled"], .acquisition-status [role="alert"] { color: #e5bd79; }
+.acquisition-history { margin-top: 10px; }
+.acquisition-result { margin-top: 16px; padding-top: 8px; border-top: 1px solid #26323a; }
+.acquisition-result h3 { color: #d9e8ef; font-size: 0.9rem; }
+.acquisition-result summary { cursor: pointer; padding-block: 12px; }
+.acquisition-details { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(0, 3fr); gap: 8px 12px; overflow-wrap: anywhere; }
+.acquisition-details dt { color: #8fabb8; }
+.acquisition-details dd { margin: 0; }
 
 .spectrum-axis-label {
   fill: #71818a;

@@ -41,6 +41,7 @@ interface SpectrumChartProps {
   readonly expected: readonly number[]
   readonly preview: readonly number[]
   readonly fullWell: number
+  readonly secondaryKind?: 'preview' | 'raw'
 }
 
 export function SpectrumChart({
@@ -48,6 +49,7 @@ export function SpectrumChart({
   expected,
   preview,
   fullWell,
+  secondaryKind = 'preview',
 }: SpectrumChartProps) {
   const maximum = Math.max(1, ...expected, ...preview)
   const expectedPath = pathForValues(shifts, expected, maximum)
@@ -61,7 +63,8 @@ export function SpectrumChart({
       className="spectrum-chart"
       viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
       role="img"
-      aria-label="Expected and seeded CCD preview spectra"
+      aria-label={secondaryKind === 'raw' ? 'Frozen expected and raw acquired mean spectra' : 'Expected and seeded CCD preview spectra'}
+      data-spectrum-source={secondaryKind}
       data-spectrum-saturated={saturated}
     >
       <rect
@@ -88,7 +91,7 @@ export function SpectrumChart({
         )
       })}
       <path className="spectrum-expected-path" d={expectedPath} />
-      <path className="spectrum-preview-path" d={previewPath} />
+      <path className={secondaryKind === 'raw' ? 'spectrum-raw-path' : 'spectrum-preview-path'} d={previewPath} />
       <text className="spectrum-axis-label" x={CHART_PADDING.left} y={CHART_HEIGHT - 10}>
         {minimumShift.toFixed(0)} cm⁻¹
       </text>
