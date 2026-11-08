@@ -35,7 +35,7 @@ describe('Phase 4B exposures, mean and metric availability', () => {
     expect(run.exposures).toEqual(frames)
     expect(Object.isFrozen(run.exposures[0]!.counts)).toBe(true)
     expect(run.metrics.snr.value).toBeNull()
-    expect(run.metrics.rayleigh_od.value).toBeNull()
+    expect(run.metrics.rayleigh_od.value).toBe(-Math.log10(input.instrument_snapshot.context.rayleigh_return.leakage_throughput_to_spectrometer_input))
   })
 
   it('rejects incomplete, cross-axis, cross-run and out-of-order aggregation', () => {

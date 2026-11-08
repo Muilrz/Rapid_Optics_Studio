@@ -44,7 +44,9 @@ describe('Phase 4A acquisition data contracts', () => {
     expect(run.exposures[0]!.exposure_index).toBe(0)
     expect(run.input.rng.seed_uint32).toBe(0)
     expect(run.metrics.snr.value).toBeNull()
-    expect(run.metrics.rayleigh_od.undefined_reason).not.toBe('')
+    // Historical contract fixtures retain their original undefined availability.
+    expect(run.metrics.rayleigh_od.status).toBe('undefined')
+    if (run.metrics.rayleigh_od.status === 'undefined') expect(run.metrics.rayleigh_od.undefined_reason).not.toBe('')
     expect(run.acquired_spectrum.counts).toEqual(n === 1 ? [1, 2] : [2, 3])
     frozenTree(run)
     expect(AcquisitionRunSchema.parse(run)).toEqual(run)

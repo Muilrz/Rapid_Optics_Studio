@@ -71,7 +71,50 @@ identities and the existing CCD pipeline. The scientific projection excludes
 editor/display information; changed/deleted components must still be comparable
 without revalidating stale target lineage.
 
-SNR and Rayleigh OD remain explicitly undefined (`null` plus reason), so the
-final numerical PRD acceptance has not passed. Recorded power readings retain
-Phase 3 detected effective-power proxy semantics, mW, source, and model version;
-they are not absolute Raman radiant power.
+## Numerical metrics and validity
+
+`numericalMetrics.ts` supplies versioned model metrics, without changing Raw,
+exposures, the CCD noise generator, or the acquisition scheduler. Previous Runs
+with undefined metrics remain valid historical data; they are not recalculated.
+The numerical union extends metric availability; Exposure/Raw contract versions
+and all Preview/RNG results remain unchanged.
+
+Rayleigh path OD is `-log10(T)` for positive modeled transfer T from a unit
+Sample Rayleigh return to Spectrometer **input**, at the frozen excitation
+wavelength. Context transfer includes the traced filter AOI leakage, dichroic
+branch coefficients and passive path losses; it excludes grating/QE/electronics.
+It is not the OD of an isolated filter or a calibrated wavelength scan. T=1
+gives 0; missing path/wavelength or T=0 gives explicit undefined (not Infinity,
+not an epsilon-limited OD). See [NIST TN1715, glossary](https://nvlpubs.nist.gov/nistpubs/TechnicalNotes/NIST.TN.1715.pdf).
+
+Peak SNR is the **predicted Raman signal per bin / Gaussian RMS of the N-frame
+mean**, at the strongest frozen Raman-only CCD bin, first index on ties. The
+axis must contain a nonzero material reference peak. Signal is reconstructed
+through the existing Raman-component synthesis and CCD conversion, applying
+QE, throughput, integration and gain once, with no fluorescence/Rayleigh/dark
+in the numerator. Let E be the original total expected counts at that bin:
+
+```text
+sigma_mean = hypot(sqrt(max(E, existing_variance_floor)), read_noise_rms) / sqrt(N)
+predicted_peak_snr = expected_Raman_only_signal_counts / sigma_mean
+```
+
+E already includes background and dark. This follows the **existing output
+counts Gaussian model**, not a new electron-domain Poisson model; no extra
+gain/dark variance is added. Independent variances combine in quadrature;
+see [Hamamatsu's SNR guide](https://camera.hamamatsu.com/us/en/learn/technical_information/thechnical_guide/calculating_snr.html).
+Using that rule with this repository's counts-domain approximation and N is a
+model derivation, not a calibrated hardware SNR formula or empirical estimate
+from the noisy maximum. No Phase 5 peak detection/baseline processing is added.
+
+Expected saturation or observed clipping **at the selected peak bin** makes
+this linear SNR undefined. No alternative unsaturated bin is chosen to conceal
+saturation. Missing Raman source/peak, incomplete N, and numerical range limits
+are handled explicitly. Raw is never background-subtracted or modified.
+
+Missing inputs for calibrated physical claims include wavelength/AOI/polarization
+dependent filter curves and validated detector conversion/noise calibration.
+These do not prevent the explicitly limited model metrics, but cannot be
+invented to claim measured filter OD or hardware SNR. The default 1s/N=20
+Raman peak is saturated, so final PRD F numerical acceptance remains unpassed.
+Power readings retain their mW/source/model and effective-proxy semantics.

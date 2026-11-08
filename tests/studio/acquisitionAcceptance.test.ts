@@ -33,9 +33,10 @@ describe('Phase 4F F/G, immutable data and retention safeguards', () => {
     expect(store.getState().acquisition.completedRuns).toHaveLength(2)
     expect(store.getState().acquisition.completedRuns[0]).toEqual(saved)
     expect(run.input.expected_spectrum.axis).not.toEqual(store.getState().acquisition.completedRuns[1]!.input.expected_spectrum.axis)
-    // Unresolved numerical acceptance remains explicit, never masquerading as a pass.
+    // The default peak is saturated: do not masquerade this as quantitative SNR.
     expect(run.metrics.snr.value).toBeNull()
-    expect(run.metrics.rayleigh_od.value).toBeNull()
+    if (run.metrics.snr.status === 'undefined') expect(run.metrics.snr.undefined_reason).toMatch(/saturated|clipped/)
+    expect(run.metrics.rayleigh_od.status).toBe('available')
   })
 
   it('rejects oversized requests and cumulative retention without discarding records', () => {

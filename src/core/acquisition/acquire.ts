@@ -7,6 +7,7 @@ import {
 import { CCD_NOISE_MODEL_VERSION } from './contracts'
 import { realizeCcdCounts } from './ccdRealization'
 import { createMulberry32RandomNumberGenerator, type RandomNumberGenerator } from './rng'
+import { calculatePeakSnr, calculateRayleighOd } from './numericalMetrics'
 
 export const createAcquisitionRngProvenance = (seed: number) => AcquisitionRngProvenanceSchema.parse({
   algorithm: 'mulberry32', algorithm_version: 'mulberry32-v1', seed_uint32: seed,
@@ -53,18 +54,19 @@ export const averageAcquisitionExposures = (input: AcquisitionInput, exposures: 
 export const completeAcquisition = (inputData: AcquisitionInput, exposures: readonly AcquisitionExposure[], completedAt: string) => {
   const input = AcquisitionInputSchema.parse(inputData)
   const context = input.instrument_snapshot.context
+  const raw = averageAcquisitionExposures(input, exposures)
   const proxy = (value: number, source: string) => ({ status: 'available', value, unit: 'mW', source,
     model_version: context.model_version,
     scientific_semantics: 'detected-effective-power-proxy-not-absolute-raman-radiant-power' })
   return CompletedAcquisitionRunSchema.parse({
     status: 'completed', input, exposures, completed_at: completedAt,
-    acquired_spectrum: averageAcquisitionExposures(input, exposures),
+    acquired_spectrum: raw,
     metrics: {
       focus_efficiency: context.focus.efficiency,
       raman_power: proxy(context.raman_return.detected_effective_excitation_power_mw, 'raman_return.detected_effective_excitation_power_mw'),
       rayleigh_leakage: proxy(context.rayleigh_return.detected_effective_leakage_power_mw, 'rayleigh_return.detected_effective_leakage_power_mw'),
-      snr: { status: 'undefined', value: null, undefined_reason: 'No approved SNR definition in the current model.' },
-      rayleigh_od: { status: 'undefined', value: null, undefined_reason: 'No approved Rayleigh OD definition in the current model.' },
+      snr: calculatePeakSnr(input, exposures, raw),
+      rayleigh_od: calculateRayleighOd(input),
       saturation: { evidence: 'expected-mask-and-per-exposure-clipping', expected_saturated_bin_count: input.expected_spectrum.saturated_bin_count },
     },
   })

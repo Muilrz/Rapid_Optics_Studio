@@ -620,7 +620,7 @@ Phase 8 Diagnostics + Hardening
 | 1 | [`PHASE1_PLAN.md`](PHASE1_PLAN.md) | 从原总体计划迁出的已完成历史施工计划 |
 | 2 | 无独立计划留存 | 已完成；不根据现有代码倒推或补造历史施工计划 |
 | 3 | [`PHASE3_PLAN.md`](PHASE3_PLAN.md) | 已完成阶段的详细计划与验收记录 |
-| 4 | [`PHASE4_PLAN.md`](PHASE4_PLAN.md) | 4A～4E工程完成，4F验证已执行；SNR/OD数值要求未满足，总PRD Exit Gate未通过 |
+| 4 | [`PHASE4_PLAN.md`](PHASE4_PLAN.md) | 4A～4E及有限模型指标已实现；默认F峰饱和、线性SNR不适用，总PRD Exit Gate仍未通过 |
 | 5～8 | 尚未编写专项计划 | 当前仅由本路线图定义阶段范围与 Exit Gate |
 
 专项计划细化本路线图，不改变 PRD 产品需求。计划状态与开发进度以 `CURRENT_PHASE.md` 为入口；不得把“计划已编写”解释成“实现已获授权”。

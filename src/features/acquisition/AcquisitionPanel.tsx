@@ -34,6 +34,14 @@ export function AcquisitionRunInspector({ run }: { readonly run: AcquisitionRun 
         preview={run.acquired_spectrum.counts} fullWell={snapshot.detector.full_well_counts} secondaryKind="raw" />
       <div className="spectrum-legend"><span><i className="spectrum-legend-expected" />Expected at acquisition</span>
         <span><i className="spectrum-legend-raw" />Raw acquired mean · unprocessed</span></div>
+      <dl className="acquisition-details" aria-label="Acquisition numerical metrics">
+        <dt>Peak SNR (predicted model)</dt><dd data-metric="peak-snr">{run.metrics.snr.status === 'available'
+          ? <>{run.metrics.snr.value.toPrecision(5)} ratio · Raman bin {run.metrics.snr.peak_shift_cm_1.toFixed(2)} cm⁻¹ · N={run.metrics.snr.number_of_exposures}</>
+          : <>Undefined — {run.metrics.snr.undefined_reason}</>}</dd>
+        <dt>Rayleigh path OD (model)</dt><dd data-metric="rayleigh-od">{run.metrics.rayleigh_od.status === 'available'
+          ? <>{run.metrics.rayleigh_od.value.toPrecision(5)} OD · {run.metrics.rayleigh_od.excitation_wavelength_nm} nm · Sample return → Spectrometer input</>
+          : <>Undefined — {run.metrics.rayleigh_od.undefined_reason}</>}</dd>
+      </dl>
     </> : <p>{run.cancellation_reason} No complete raw mean. {run.exposures.length} accepted frames retained.</p>}
     <details>
       <summary>Instrument snapshot and metrics</summary>
@@ -51,8 +59,8 @@ export function AcquisitionRunInspector({ run }: { readonly run: AcquisitionRun 
           <dt>Raman effective power proxy</dt><dd>{run.metrics.raman_power.value.toPrecision(5)} mW · {run.metrics.raman_power.source} · {run.metrics.raman_power.model_version}</dd>
           <dt>Rayleigh leakage proxy</dt><dd>{run.metrics.rayleigh_leakage.value.toPrecision(5)} mW · {run.metrics.rayleigh_leakage.source} · {run.metrics.rayleigh_leakage.model_version}</dd>
           <dt>Power semantics</dt><dd>Detected effective power proxies; not absolute Raman radiant power.</dd>
-          <dt>SNR</dt><dd>Undefined — {run.metrics.snr.undefined_reason}</dd>
-          <dt>Rayleigh OD</dt><dd>Undefined — {run.metrics.rayleigh_od.undefined_reason}</dd>
+          {run.metrics.snr.status === 'available' && <><dt>Peak SNR evidence</dt><dd>Expected Raman-only signal {run.metrics.snr.signal_counts.toPrecision(5)} counts/bin; Gaussian RMS of mean {run.metrics.snr.noise_rms_counts.toPrecision(5)} counts/bin. Pre-clipping model prediction, not empirical SNR. {run.metrics.snr.model_version} · {run.metrics.snr.source}</dd></>}
+          {run.metrics.rayleigh_od.status === 'available' && <><dt>OD reference</dt><dd>−log₁₀(T), T={run.metrics.rayleigh_od.transmission.toExponential(5)}. Includes return-path routing/losses, excludes detector response. Empirical filter model, not calibrated spectral filter OD. {run.metrics.rayleigh_od.model_version} · {run.metrics.rayleigh_od.source}</dd></>}
           <dt>Saturation evidence</dt><dd>{expected.saturated_bin_count} expected saturated bins; {run.exposures.filter((f) => f.clipped_high.some(Boolean)).length} exposures with high clipping. Mean alone does not establish absence of saturation.</dd>
         </>}
       </dl>

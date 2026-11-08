@@ -17,6 +17,8 @@ import {
   VirtualCcdConfigurationSchema,
   VirtualSpectrometerConfigurationSchema,
 } from './contracts'
+import { PEAK_SNR_MODEL_VERSION, PEAK_SNR_SEMANTICS, RAYLEIGH_OD_MODEL_VERSION,
+  RAYLEIGH_OD_SEMANTICS, meanNoiseRmsCounts } from './numericalMetrics'
 
 /** Contract versions do not claim that Phase 4B algorithms exist. */
 export const ACQUISITION_CONTRACT_VERSION = 'acquisition-contract-v1' as const
@@ -250,6 +252,19 @@ export const MetricAvailabilitySchema = z.discriminatedUnion('status', [
 export type MetricAvailability = z.infer<typeof MetricAvailabilitySchema>
 
 const UndefinedMetricSchema = z.strictObject({ status: z.literal('undefined'), value: z.null(), undefined_reason: label })
+export const PeakSnrMetricSchema = z.discriminatedUnion('status', [UndefinedMetricSchema,
+  z.strictObject({ status: z.literal('available'), value: finite.positive(), unit: z.literal('ratio'),
+    source: z.literal('frozen-raman-ccd-and-noise-model'), model_version: z.literal(PEAK_SNR_MODEL_VERSION),
+    scientific_semantics: z.literal(PEAK_SNR_SEMANTICS), peak_bin_index: safeIndex,
+    peak_shift_cm_1: finite, peak_wavelength_nm: finite.positive(), signal_counts: finite.positive(),
+    noise_rms_counts: finite.positive(), number_of_exposures: positiveInteger }),
+]).transform(freezeData)
+export const RayleighOdMetricSchema = z.discriminatedUnion('status', [UndefinedMetricSchema,
+  z.strictObject({ status: z.literal('available'), value: nonnegative, unit: z.literal('OD'),
+    source: z.literal('context.rayleigh_return.leakage_throughput_to_spectrometer_input'),
+    model_version: z.literal(RAYLEIGH_OD_MODEL_VERSION), scientific_semantics: z.literal(RAYLEIGH_OD_SEMANTICS),
+    transmission: finite.positive().max(1), excitation_wavelength_nm: finite.positive() }),
+]).transform(freezeData)
 const ProxyMetricSchema = z.strictObject({
   status: z.literal('available'), value: nonnegative, unit: z.literal('mW'),
   source: label, model_version: label,
@@ -259,8 +274,8 @@ const MetricsSchema = z.strictObject({
   focus_efficiency: nonnegative.max(1),
   raman_power: ProxyMetricSchema,
   rayleigh_leakage: ProxyMetricSchema,
-  snr: UndefinedMetricSchema,
-  rayleigh_od: UndefinedMetricSchema,
+  snr: PeakSnrMetricSchema,
+  rayleigh_od: RayleighOdMetricSchema,
   /** Expected mask + each exposure's masks are the saturation evidence. */
   saturation: z.strictObject({ evidence: z.literal('expected-mask-and-per-exposure-clipping'),
     expected_saturated_bin_count: safeIndex }),
@@ -335,6 +350,25 @@ export const CompletedAcquisitionRunSchema = z.strictObject({
   for (const [metric, source, value] of proxies) {
     if (metric.source !== source || metric.value !== value || metric.model_version !== context.model_version) {
       ctx.addIssue({ code: 'custom', message: 'Power proxy must match its declared frozen source and model.' })
+    }
+  }
+  const od = metrics.rayleigh_od
+  if (od.status === 'available' && (!context.rayleigh_return.geometric_path_reaches_spectrometer ||
+      od.transmission !== context.rayleigh_return.leakage_throughput_to_spectrometer_input ||
+      od.excitation_wavelength_nm !== context.excitation_wavelength_nm || od.value !== -Math.log10(od.transmission))) {
+    ctx.addIssue({ code: 'custom', message: 'OD must match its frozen path reference and transmission.' })
+  }
+  const snr = metrics.snr
+  if (snr.status === 'available') {
+    const expected = s.input.expected_spectrum
+    const i = snr.peak_bin_index
+    if (i >= expected.expected_counts.length || snr.number_of_exposures !== n ||
+        snr.peak_shift_cm_1 !== expected.axis.values_cm_1[i] || snr.peak_wavelength_nm !== expected.scattered_wavelength_nm[i] ||
+        snr.signal_counts > expected.signal_counts[i]! || expected.saturated[i] ||
+        s.exposures.some((e) => e.clipped_high[i] || e.clipped_low[i]) ||
+        snr.noise_rms_counts !== meanNoiseRmsCounts(expected.expected_counts[i]!, expected.detector.read_noise_rms_counts, n) ||
+        snr.value !== snr.signal_counts / snr.noise_rms_counts) {
+      ctx.addIssue({ code: 'custom', message: 'Peak SNR must match its frozen bin, N, noise model and unclipped data.' })
     }
   }
 }).transform(freezeData)

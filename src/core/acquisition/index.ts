@@ -1,6 +1,7 @@
 export * from './contracts'
 export * from './acquisitionContracts'
 export * from './acquire'
+export * from './numericalMetrics'
 export * from './modelParameters'
 export * from './previewExposure'
 export * from './rng'
