@@ -38,6 +38,13 @@ const freezeData = <T>(value: T): DeepReadonly<T> => {
   }
   return value as DeepReadonly<T>
 }
+const copyPlainData = <T>(value: T): T => {
+  if (Array.isArray(value)) return value.map((child) => copyPlainData(child)) as T
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, copyPlainData(child)])) as T
+  }
+  return value
+}
 
 const label = z.string().trim().min(1).max(512)
 const finite = z.number().finite()
@@ -164,10 +171,12 @@ export const InstrumentSnapshotSchema = SnapshotDataSchema.superRefine((s, ctx) 
 }).transform(freezeData)
 export type InstrumentSnapshot = z.infer<typeof InstrumentSnapshotSchema>
 
-/** Data projection only. No revision tracking, cancellation or target resolver. */
+/** Data projection only. The comparison side may no longer have a valid target.
+ * Inputs are schema-validated authoritative data; do not revalidate old lineage
+ * against a changed/deleted component here, since that change must cancel. */
 export const projectAcquisitionConfiguration = (input: InstrumentSnapshot) => {
-  const s = InstrumentSnapshotSchema.parse(input)
-  return freezeData({
+  const s = input
+  return freezeData(copyPlainData({
     identity_version: ACQUISITION_CONFIGURATION_IDENTITY_VERSION,
     components: s.optical_scene.components.map((c) => ({
       id: c.id, type: c.type, enabled: c.enabled,
@@ -179,9 +188,11 @@ export const projectAcquisitionConfiguration = (input: InstrumentSnapshot) => {
         relative_intensity: p.relative_intensity, width_cm_1: p.width_cm_1 })) },
     spectrometer: s.spectrometer, detector: s.detector,
     target: s.target, simulation_model_version: s.simulation_model_version,
-  })
+  }))
 }
 export type AcquisitionConfigurationProjection = ReturnType<typeof projectAcquisitionConfiguration>
+export const haveSameAcquisitionConfiguration = (left: InstrumentSnapshot, right: InstrumentSnapshot) =>
+  sameData(projectAcquisitionConfiguration(left), projectAcquisitionConfiguration(right))
 
 const ValuesSchema = z.array(nonnegative).min(2)
 const BoundsSchema = z.strictObject({ minimum_counts: z.literal(0), maximum_counts: finite.positive() })

@@ -281,6 +281,8 @@ Current acquisition was stopped.
 
 ### Phase 4D — Instrument Change Cancellation Integration
 
+**实施记录（2026-11-08）：** 科学配置投影比较已接入 commitScene/restoreScene/replaceScene/detector/simulation 公共提交边界，配置更新与取消在同一 Zustand 提交发布。回调前、接受帧前和最终提交前复查配置/token；保留取消帧。21项定向用例覆盖编辑入口、物理Undo/Redo/rollback、非科学操作与等值替换不误取消、曝光/完成竞争。projection 对失效目标只比较科学输入，不重验旧lineage；复制后冻结，避免冻结 live state。完整验证统一4F。
+
 **依赖：** 4C；Q6/Q7 Approved，目标与科学输入身份的 Open 细节先收口。
 
 **工作：** 接入所有科学输入 mutation 提交边界和配置检查，原子取消与原因事件；处理 transaction/Undo/Redo/replaceScene、最终 exposure 竞争。

@@ -43,6 +43,7 @@ export const createAcquisitionController = (
   publish: (state: StudioAcquisitionState) => void,
   design: () => AcquisitionDesign,
   services: AcquisitionServices = {},
+  isCurrent: (input: AcquisitionInput) => boolean = () => true,
 ) => {
   const clock = services.clock ?? { now: () => new Date().toISOString() }
   const schedule = services.schedule ?? ((callback) => {
@@ -61,6 +62,32 @@ export const createAcquisitionController = (
   }
   const running = (active: Job): AcquisitionRuntime => Object.freeze({ status: 'running',
     token: active.token, input: active.input, exposures: active.frames })
+  const cancelState = (reason: string): StudioAcquisitionState | undefined => {
+    const active = job
+    if (!active) return undefined
+    // Invalidate callbacks before publishing either the terminal state or design.
+    job = undefined
+    active.unschedule?.()
+    const state = read()
+    try {
+      const run = CancelledAcquisitionRunSchema.parse({ status: 'cancelled', input: active.input,
+        cancelled_at: now(), cancellation_reason: reason, exposures: active.frames })
+      return Object.freeze({ ...state, runtime: Object.freeze({ status: 'cancelled', run }),
+        cancelledRuns: Object.freeze([...state.cancelledRuns, run]) })
+    } catch (error) {
+      return Object.freeze({ ...state, runtime: Object.freeze({ status: 'error', token: active.token,
+        input: active.input, exposures: active.frames, error_reason: message(error) }) })
+    }
+  }
+  const check = (active: Job) => {
+    if (job !== active) return false
+    if (!isCurrent(active.input)) {
+      const cancelled = cancelState('Optical configuration changed. Current acquisition was stopped.')
+      if (cancelled) publish(cancelled)
+      return false
+    }
+    return true
+  }
   const enqueue = (active: Job) => {
     if (job !== active) return
     const index = active.frames.length
@@ -68,8 +95,9 @@ export const createAcquisitionController = (
       if (job !== active || active.frames.length !== index) return
       active.unschedule = undefined
       try {
+        if (!check(active)) return
         const frame = AcquisitionExposureSchema.parse((services.expose ?? simulateAcquisitionExposure)(active.input, index, active.random))
-        if (job !== active) return
+        if (!check(active)) return
         const expectedAxis = active.input.expected_spectrum.axis.values_cm_1
         if (frame.run_id !== active.input.id || frame.exposure_index !== index || frame.rng.seed_uint32 !== active.input.rng.seed_uint32 ||
             frame.detector_bounds.maximum_counts !== active.input.instrument_snapshot.detector.full_well_counts ||
@@ -78,8 +106,9 @@ export const createAcquisitionController = (
         }
         active.frames = Object.freeze([...active.frames, frame])
         if (active.frames.length === active.input.request.number_of_exposures) {
+          if (!check(active)) return
           const run = CompletedAcquisitionRunSchema.parse((services.complete ?? completeAcquisition)(active.input, active.frames, now()))
-          if (job !== active) return
+          if (!check(active)) return
           job = undefined
           const state = read()
           publish(Object.freeze({ ...state, runtime: Object.freeze({ status: 'completed', run }),
@@ -111,18 +140,10 @@ export const createAcquisitionController = (
         return false
       }
     },
+    cancelState,
     cancel: (reason: string) => {
-      const active = job
-      if (!active) return
-      try {
-        const run = CancelledAcquisitionRunSchema.parse({ status: 'cancelled', input: active.input,
-          cancelled_at: now(), cancellation_reason: reason, exposures: active.frames })
-        job = undefined
-        active.unschedule?.()
-        const state = read()
-        publish(Object.freeze({ ...state, runtime: Object.freeze({ status: 'cancelled', run }),
-          cancelledRuns: Object.freeze([...state.cancelledRuns, run]) }))
-      } catch (error) { fail(active, error) }
+      const state = cancelState(reason)
+      if (state) publish(state)
     },
   }
 }

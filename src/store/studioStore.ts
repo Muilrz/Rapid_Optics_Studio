@@ -3,6 +3,8 @@ import { createStore, type StoreApi } from 'zustand/vanilla'
 import {
   DEFAULT_VIRTUAL_CCD_CONFIGURATION,
   type AcquisitionRequest,
+  type AcquisitionInput,
+  haveSameAcquisitionConfiguration,
   VirtualCcdConfigurationSchema,
   type VirtualCcdConfiguration,
 } from '../core/acquisition'
@@ -167,6 +169,7 @@ export interface StudioState {
   readonly setDetectorConfiguration: (
     configuration: VirtualCcdConfiguration,
   ) => void
+  readonly setSimulationConfiguration: (configuration: SimulationConfiguration) => void
   readonly setGridVisible: (visible: boolean) => void
   readonly setViewportSize: (width_px: number, height_px: number) => void
   readonly panView: (delta_px: ScreenPoint) => void
@@ -264,8 +267,20 @@ export const createStudioStore = (
   })
 
   return createStore<StudioState>()((set, get) => {
+    const configurationMatches = (input: AcquisitionInput, design: StudioAuthoritativeState) =>
+      haveSameAcquisitionConfiguration(input.instrument_snapshot, {
+        ...input.instrument_snapshot, optical_scene: design.scene,
+        simulation_settings: design.simulationConfiguration, detector: design.detectorConfiguration,
+      })
     const acquisition = createAcquisitionController(() => get().acquisition,
-      (state) => set({ acquisition: state }), () => get().authoritative, acquisitionServices)
+      (state) => set({ acquisition: state }), () => get().authoritative, acquisitionServices,
+      (input) => configurationMatches(input, get().authoritative))
+    const acquisitionPatch = (current: StudioState, next: StudioAuthoritativeState) => {
+      const runtime = current.acquisition.runtime
+      if (runtime.status !== 'running' || configurationMatches(runtime.input, next)) return {}
+      const cancelled = acquisition.cancelState('Optical configuration changed. Current acquisition was stopped.')
+      return cancelled ? { acquisition: cancelled } : {}
+    }
     const commitScene = (
       current: StudioState,
       nextScene: OpticalScene,
@@ -296,6 +311,7 @@ export const createStudioStore = (
             activeTransaction: null,
           })
       set({
+        ...acquisitionPatch(current, { ...current.authoritative, scene: nextScene, revision }),
         authoritative: Object.freeze({ ...current.authoritative, scene: nextScene, revision }),
         derived: retrace
           ? Object.freeze({ ...derived, sceneRevision: revision })
@@ -313,6 +329,7 @@ export const createStudioStore = (
       idAllocator.observe(nextScene)
       const revision = current.authoritative.revision + 1
       set({
+        ...acquisitionPatch(current, { ...current.authoritative, scene: nextScene, revision }),
         authoritative: Object.freeze({ ...current.authoritative, scene: nextScene, revision }),
         derived: Object.freeze({
           ...deriveStudioSimulation({
@@ -466,6 +483,7 @@ export const createStudioStore = (
         const revision = current.authoritative.revision + 1
         idAllocator.observe(validatedScene)
         set({
+          ...acquisitionPatch(current, { ...current.authoritative, scene: validatedScene, revision }),
           authoritative: Object.freeze({ ...current.authoritative, scene: validatedScene, revision }),
           derived: Object.freeze({
             ...deriveStudioSimulation({
@@ -821,6 +839,7 @@ export const createStudioStore = (
         }
         const revision = current.authoritative.revision + 1
         set({
+          ...acquisitionPatch(current, { ...current.authoritative, detectorConfiguration: validated, revision }),
           authoritative: Object.freeze({
             ...current.authoritative,
             detectorConfiguration: validated,
@@ -837,6 +856,19 @@ export const createStudioStore = (
             }),
             sceneRevision: revision,
           }),
+        })
+      },
+      setSimulationConfiguration: (configuration) => {
+        const current = get()
+        const validated = SimulationConfigurationSchema.parse(configuration)
+        if (JSON.stringify(validated) === JSON.stringify(current.authoritative.simulationConfiguration)) return
+        const revision = current.authoritative.revision + 1
+        const authoritative = Object.freeze({ ...current.authoritative, simulationConfiguration: validated, revision })
+        set({
+          ...acquisitionPatch(current, authoritative), authoritative,
+          derived: Object.freeze({ ...deriveStudioSimulation({ scene: authoritative.scene,
+            simulationConfiguration: validated, detectorConfiguration: authoritative.detectorConfiguration,
+            sourceRevision: revision }), sceneRevision: revision }),
         })
       },
       setGridVisible: (gridVisible) =>
