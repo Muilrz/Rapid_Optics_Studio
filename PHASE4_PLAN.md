@@ -1,12 +1,12 @@
 # Rapid Optics Studio V1 — Phase 4 Acquisition Implementation Plan
 
-> **Status:** Phase 4A — Acquisition Contracts Completed；4B～4F 未开始，Phase 4 未完成<br>
+> **Status:** 4A～4E 工程实现完成；4F 验证/评审已执行；Phase 4 总 PRD Exit Gate **未通过**（SNR/OD 数值定义缺失）<br>
 > **Date:** 2026-11-08  
 > **Depends on:** Phase 3 — Raman + Virtual CCD  
 > **Roadmap:** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) 第 3.2、4 节  
 > **Current status:** [CURRENT_PHASE.md](CURRENT_PHASE.md)
 
-本文只规划 Phase 4。产品需求以 [PRD.md](PRD.md) 为准；第 9.1 节区分 PRD 原有要求、Approved 工程决策与 Deferred/Open 细节。本次仅实现获授权的 4A 契约与校验，不实现 UI、循环或 4B。后续子阶段仍须单独授权；未决行为不得作为默认值实现。
+本文记录Phase4计划及验收。PRD为产品要求；第9.1节区分已批准决策、本次授权下选定的工程细节与未解决科学问题。用户本次连续授权4B→4F，定向验证后可继续，full test/lint/build统一4F执行，不进入Phase5。SNR/OD不得编造定义，null/reason不代表数值验收通过。
 
 ## 1. Goals
 
@@ -49,7 +49,7 @@ Acquire → Validate → Snapshot Instrument State
 
 “保存 AcquisitionRun”在本阶段指加入应用内实验记录，不宣称已经完成文件持久化。领域 schema 校验属于 Phase 4 数据完整性，不提前建立完整 Project schema、migration 或 processing 数据模型。
 
-不引入后端、数据库、新 npm 依赖、monorepo、通用任务框架、硬件控制、无限累积、pause/resume。取消保留已完成 exposures，error 仅在 runtime 保留；手动 Stop 是否提供仍 Deferred，不把 PRD 配置变更 Stop 自动扩展成额外功能。
+不引入后端、数据库、新 npm 依赖、monorepo、通用任务框架、硬件控制、无限累积、pause/resume。取消保留已完成exposures，error仅runtime保留；本次最小UI不增加手动Stop，配置变更自动取消。
 
 ## 3. Existing Architecture Assessment
 
@@ -66,7 +66,7 @@ Acquire → Validate → Snapshot Instrument State
 | `src/features/spectrum/SpectrumPreview.tsx` | SVG expected/preview 图、材料/波长/detector 控件、focus/path/power/saturation | 保留预览；扩展最小采集入口与结果显示，公式不写在 React 内 |
 | `tests/acquisition/*`、`tests/studio/spectrum*` | seeded noise、数值边界、派生更新和 rendering 测试 | 保留 Phase 3 语义，新增正式采集测试 |
 
-盘点时尚无 AcquisitionRun / average / acquisition state machine / snapshot builder。4A 新增的数据契约见 §4.6，尚无执行算法。当前 preview 优先选一个 Raman context、再选其返回谱仪；正式采集已批准唯一一致目标链、歧义拒绝，解析接线 Deferred 至4C。`revision` 会随 component name 等非物理字段变动递增，不能作为所有取消行为的最终依据；Q7-R 已批准科学投影为身份依据、revision 仅辅助。
+在4A之前盘点时尚无AcquisitionRun/average/runtime/snapshot；4A完成时只有契约，后续4B～4E已按本次授权实现。Preview优先选择context的逻辑保持原样，正式采集用4C独立唯一链解析；通用revision包含name，不作为取消真值，4D比较科学投影。
 
 代码已有 focus 和 detected effective power/leakage 字段，但没有可直接复用的 Run SNR / Rayleigh OD 指标实现。Raman power 字段目前带有 effective-excitation proxy 语义，不应无说明声称为绝对 Raman 辐射功率（Q4）。
 
@@ -99,7 +99,7 @@ Acquire → Validate → Snapshot Instrument State
 | Runtime | status、run token/ID、requested N、completed exposure count k、frozen inputs、已接受的不可变 exposures、临时累加器、RNG 状态/来源、取消或错误原因、startedAt；completedAt 仅成功完成时写入 |
 | Runtime 生命周期 | `0 ≤ k ≤ N`；running 仅能接受本 token 的下一次 exposure；终态后迟到任务不得写入；timer/RNG closure 不属于可保存 Run |
 
-Q3 Approved：正式采集 integration 必须为有限正数，N 必须为正安全整数。Phase 3 detector/preview 仍可接受 0 秒，不为正式采集校验破坏既有科学原语。Number.MAX_SAFE_INTEGER 为表示边界，不是已测试的产品容量。最大 N 根据 CCD bin 数、逐帧留存及资源测试确定，不预设未经验证的产品上限，也不宣称无限资源；资源策略 Deferred 至 4B/4C。校验失败不得污染记录或设计；不得静默取整、clamp 或改 N。
+Q3 Approved：正式integration有限正数、N正安全整数；Phase3原语仍可接受0。Number.MAX_SAFE_INTEGER是表示边界，不是产品容量；本次按bins、逐帧留存和资源测量采用会话数据预算（见4F），不预设固定产品N上限或宣称无限资源。失败不污染记录、不静默取整/clamp N。
 
 ### 4.2 Immutable Instrument Snapshot
 
@@ -115,7 +115,7 @@ Q3 Approved：正式采集 integration 必须为有限正数，N 必须为正安
 
 expected 与 snapshot 必须来自同一个 authoritative 状态；从 live derived 取缓存仅在确认其输入身份/配置匹配时允许，否则从 frozen 输入重算。现有 sceneRevision 对 name-only edit 也更新，单个 revision 相等不能替代完整来源核对。
 
-Q6-R Approved：只允许来源一致、唯一可追溯的目标链，歧义拒绝；不照搬 Preview 排序/fallback。契约校验 enabled 组件身份、material/context/波长匹配及单一返回谱仪 lineage。无激发时，只有现有 CCD 管线可生成真实 dark-only expected 且必要 Laser/Spectrometer 身份唯一明确才有效；不伪造输入。4A 校验提供的快照及 lineage 结构，不重新执行 trace 或证明候选集合完整性；完整候选解析和拒绝启动在 4C 实现，不能将结构校验通过误称为已实现目标解析器。
+Q6-R Approved：仅来源一致、唯一可追溯目标链，歧义拒绝，不照搬Preview排序。4A校验快照身份/material/context/波长与单一谱仪lineage；4C已实现完整候选解析及拒绝启动。Dark-only只限真实CCD可执行、必要身份明确的配置，不伪造信号。4A结构校验本身仍不冒充目标解析。
 
 建立**脱离 live state 的数据副本并递归保护**：TypeScript readonly 不足以保证运行时不变，顶层 `Object.freeze` 也不保护所有嵌套对象。复用现有 Zod schema 并审计嵌套 readonly/数组，缺少保护处使用最小复制/冻结边界；通过外部引用修改测试证明。快照不是第二份可编辑设计，是科研记录的历史条件。
 
@@ -149,7 +149,7 @@ Q6-R Approved：只允许来源一致、唯一可追溯的目标链，歧义拒�
 
 只有达到 N 且平均、指标字段（含合法 null/reason）和完整契约均校验成功的结果进入 Completed Runs，一次性原子追加，不能先写半成品再补字段。Completed Run 保留恰好 N 个不可变 exposures 和 raw mean。已完成 Run 不因随后编辑、Undo/Redo、新采集、live preview 重算或 UI 切换而更改、覆盖或丢失。
 
-Q2/Q2-R Approved：Cancelled Run 保留 frozen snapshot、expected、provenance、requested N、已接受的 k 个不可变 exposures、取消原因与 cancelled_at，k 由 exposures.length 派生，允许 k=0。它不进入 Completed Runs，不生成完整 acquired_spectrum/raw mean，拒绝 completed_at。k 也可能等于 N（末帧已接受、完成尚未提交），仍不得冒称完成。Error 只在 runtime 保留输入、已接受帧与原因，不定义持久化 Error Run。手动 Stop Deferred 至 4E，不自动增加。
+Q2/Q2-R Approved：Cancelled保留snapshot/expected/provenance/requested N、已接受帧、原因与cancelled_at；k从exposures.length派生，允许0或N（末帧已接受、完成尚未提交）。不入Completed、无完整mean、拒绝completed_at。Error仅runtime保留输入/帧/原因，无持久化Error Run；4E没有增加手动Stop。
 
 Phase 5 将用 run ID 关联 processing 输入，并生成独立 processed 输出；Phase 4 不增加空 processing pipeline。Phase 7 消费普通数据契约，不序列化 runtime、timer、RNG 函数或 Trace 缓存；正式序列化与 migration 不在本阶段实现。
 
@@ -180,7 +180,7 @@ Q5-R Approved：每 Run 独立 uint32 seed（含0），单条连续流；exposur
 
 Q7-R Approved：`projectAcquisitionConfiguration` 仅生成深层不可变数据投影，作为配置身份依据：按现有顺序保留组件 id/type/enabled/transform/geometry/parameters，simulation settings、材料 id/peaks 科学数值/fluorescence、spectrometer/detector、target 与模型版本。排除 revision、名称、assignment 标签、dataset 描述、metadata、visualization、breadboard 显示信息及 Editor/View/History。revision 仅辅助，不能代替投影；不实现 revision 更新或取消接线。数组顺序保守保留，不未经验证做排序等价化。
 
-Raw 的 N>1 数值均值正确性和随机 draws 的真实消费由 4B 的算法与测试负责；4A 校验结构、来源一致性、有限值、边界与不变性，不暗中实现这些算法。
+Raw的N>1均值和真实随机draws已由4B实现并测试；4A契约层只校验结构、来源、边界与不变性。算法位于acquire.ts/ccdRealization.ts，不混入React。
 
 ## 5. State Machine
 
@@ -225,11 +225,11 @@ Current acquisition was stopped.
 
 ## 6. Implementation Breakdown
 
-以下全部是**未来获授权后**的子阶段。每个子阶段独立验收、汇报、停止，不因本计划列出依赖顺序而自动继续。
+本次4B～4F已获连续授权，每个子阶段完成定向验证再继续。历史4A记录保留，4B～4F实际证据如下；授权不延伸至Phase5。
 
 ### Phase 4A — Decision Review & Acquisition Contracts
 
-**状态：** Completed（2026-11-08）。已实现契约/Zod/fixtures 与独立验收测试；仅 4A 完成，4B～4F 未开始。
+**历史验收状态：** Completed（2026-11-08，893a0b6）。当时仅4A完成；本次4B～4F进度分别记录在后续小节，不改写4A历史范围。
 
 **依赖：** Phase 3 记录与代码核对；§9.1 影响本次契约的决策已 Approved，后续事项 Deferred，不阻塞 4A。
 
@@ -248,6 +248,8 @@ Current acquisition was stopped.
 
 ### Phase 4B — Exposure Reuse, Mean & Metrics
 
+**状态：** Completed（工程范围；SNR/OD未定义，最终数值门槛未通过）。
+
 **实施记录（2026-11-08）：** 已完成共享 CCD realization、独立连续 RNG、逐帧 immutable counts、稳定算术均值和既有 proxy/undefined 指标。旧 Preview API/算术/消费顺序不变。3 个相关测试文件62项通过；后续连续实施已获用户授权，full test/lint/build 统一在4F执行。
 
 **依赖：** 4A；遵循 Q1/Q4/Q5 Approved，相关 Open 先收口。
@@ -263,6 +265,8 @@ Current acquisition was stopped.
 - 未加入 baseline/平滑/峰检测；相关测试及 test/lint/build 通过。
 
 ### Phase 4C — Acquisition Runtime & Atomic Completion
+
+**状态：** Completed。
 
 **实施记录（2026-11-08）：** 已完成唯一目标解析、冻结输入、idle/running/completed/cancelled/error、分步 scheduler、注入 clock/seed、逐帧接受校验、有限 N 自动结束和原子完成。running 拒绝重启，终态可新建；取消保留帧，error 仅 runtime。2 个相关文件16项测试通过，含 N=1/20、迟到/重复回调、失败恢复；完整验证统一在4F。默认每100ms让出事件循环，integration仅为模拟计数时间，不声称真实硬件等待。
 
@@ -281,6 +285,8 @@ Current acquisition was stopped.
 
 ### Phase 4D — Instrument Change Cancellation Integration
 
+**状态：** Completed；4F取消矩阵已扩大至26项。
+
 **实施记录（2026-11-08）：** 科学配置投影比较已接入 commitScene/restoreScene/replaceScene/detector/simulation 公共提交边界，配置更新与取消在同一 Zustand 提交发布。回调前、接受帧前和最终提交前复查配置/token；保留取消帧。21项定向用例覆盖编辑入口、物理Undo/Redo/rollback、非科学操作与等值替换不误取消、曝光/完成竞争。projection 对失效目标只比较科学输入，不重验旧lineage；复制后冻结，避免冻结 live state。完整验证统一4F。
 
 **依赖：** 4C；Q6/Q7 Approved，目标与科学输入身份的 Open 细节先收口。
@@ -295,6 +301,8 @@ Current acquisition was stopped.
 - selection/camera/grid/clipboard copy/lock/history 记账不误取消；name-only/科学等值替换不误取消，物理 Undo/Redo 必须取消；原因消息可由 UI 消费；相关测试及 test/lint/build 通过。
 
 ### Phase 4E — Acquisition UI & Result Inspection
+
+**状态：** Completed；4F浏览器检查通过，窄屏Grid压缩问题已修复。
 
 **实施记录（2026-11-08）：** Single/Average 默认20、Acquire、权威 integration 读数、k/N、completed/cancelled/error、历史选择、冻结expected/raw和snapshot/指标摘要已实现。取消记录不画完整mean；SNR/OD明确Undefined。4项渲染测试及既有Spectrum渲染回归通过。无手动Stop/删除/导出，Preview继续独立随设计派生；真实浏览器与全量验证在4F进行。
 
@@ -312,6 +320,28 @@ Current acquisition was stopped.
 - 自动 rendering/store 测试通过；`npm run dev` 实际浏览器检查 Single、Average、编辑取消和错误恢复；test/lint/build 通过。
 
 ### Phase 4F — Regression & Phase Exit Review
+
+**状态：** 工程验证和浏览器评审已执行；**总 PRD Exit Gate 未通过**，不标记Phase4 Completed。
+
+**自动验证（2026-11-08）：**
+
+- Targeted：4B/C/D/E各有定向记录；4F增加F/G、跨Run不变性、variance约1/N和资源边界；最终取消矩阵26项（含旋转、批量transform、对齐/分布、谱仪参数及-0等值）。
+- Full Tests：npm run test最终59文件/477用例通过，包括原有未跟踪phase3PipelineRegression测试（仅执行，未修改/提交）。首次完整运行发现旧Phase3G smoke期望，按实际UI阶段修正后先定向重跑，再全量通过；未削弱科学验收。
+- Lint：npm run lint通过。
+- Build：npm run build通过。资源测试先因浏览器TS配置不识别Node全局/导入失败，改为标准TextEncoder后，该3项定向测试与build/lint通过；未添加Node配置/依赖。完整477项通过后仅此测试环境等价修正与文档更新，未重复无关full test。
+- git diff --check通过。PRD、依赖和reference未修改。
+
+**实际浏览器（本地Vite/in-app Chromium，2026-11-08）：**
+
+- Single N=1自动完成保存；布局修复后鼠标Acquire再次成功（共观察3个completed、2个cancelled）。
+- PRD F工程路径：integration=1s、Average20/20自动结束，显示冻结Expected/Raw。样本Run开始06:21:42.328Z、完成06:21:44.491Z。**SNR/OD显示Undefined，F数值要求未通过。**
+- PRD G：运行中在Inspector将Mirror X=200改为210，立即Cancelled；分别观察0/20、1/20，后者保留1帧，取消记录无完整Raw图，不进入Completed。
+- integration=0明确拒绝启动；恢复1并Undo恢复Mirror后Single成功。runtime注入故障恢复由自动测试验证；浏览器验证的是invalid-start恢复，不混称两者。
+- 编辑/Undo/新采集与切换历史后，旧Average Raw的SVG path和Run ID保持一致。摘要显示冻结Detector、UTC、RNG/模型、proxy单位/来源与Undefined reason。
+- 约491px默认窄屏发现Acquisition Grid压至1px，修为max-content与窄屏自然行高后，展开摘要高度约1406px，控件及图可滚动访问、鼠标可用，无Inspector覆盖。未宣称覆盖所有断点。
+- 捕获的页面console warning/error列表为空；工具自身Statsig警告不属于应用console。
+
+**资源测量与边界：** 默认1400 bins。Node/fake scheduler样本N20的JSON为1,603,914 bytes，留存估算2,036,736 bytes，计算约0.09～0.20s；N200为13,956,309/18,164,736 bytes，约0.7～1.2s（不是实际integration等待）。采用可注入64MiB会话留存估算预算，合计completed/cancelled及请求N×bins；超量在调度前报错，不驱逐旧Raw。它不是固定产品N上限或跨平台峰值heap保证，验证/序列化临时副本可能显著高于留存估算；大数据浏览器负载和后台节流仍是技术风险。
 
 **依赖：** 4A～4E 均已验收。
 
@@ -341,7 +371,7 @@ Current acquisition was stopped.
 
 现有 `tests/regression/phase3PipelineRegression.test.ts` 在本次检查时未跟踪；后续实施应先核对其归属与维护状态，不静默覆盖或假定已纳入版本基线。
 
-按用户最新验证要求，实现子阶段运行必要增量测试、`npm run lint`、`npm run build` 和 `git diff --check`；full `npm run test` 留大阶段验收。交互子阶段另运行 `npm run dev` 做浏览器检查。记录真实结果，不以历史 Phase 3 验收代替本次验证。4A 无交互运行行为变更，不要求浏览器验收。
+本次用户明确覆盖一般验证节奏：4B～4E用Targeted Tests推进，4F统一full test/lint/build和浏览器检查；后续一般任务仍按AGENTS分层策略，不把本次连续授权解释成永久降低Exit Gate。
 
 ## 8. Exit Gate
 
@@ -349,49 +379,38 @@ Phase 4 完成必须同时满足：
 
 - [ ] 影响契约与用户行为的 Open Questions 已审核并写回决策，不以隐式假设实现。
 - [ ] 4A～4F 各自独立验收完成。
-- [ ] Single N=1、Average N>1 使用新 noisy exposures，有限 N 自动结束。
-- [ ] Instrument Snapshot、每次 exposure 原始 counts 与 raw mean 深层不可变，不被覆盖、重新生成或处理；Cancelled 保留已接受帧、不生成完整结果、不进入 Completed Runs。
+- [x] Single N=1、Average N>1 使用新 noisy exposures，有限 N 自动结束。
+- [x] Instrument Snapshot、每次 exposure 原始 counts 与 raw mean 深层不可变，不被覆盖、重新生成或处理；Cancelled 保留已接受帧、不生成完整结果、不进入 Completed Runs。
 - [ ] AcquisitionRun 满足 PRD §42，保存 snapshot、expected/raw、N/integration、所有必需指标字段（Approved availability 策略）和可追溯版本；§4.5 PRD 数值指标验收差异已经明确审核。
-- [ ] 配置变更立即停止并提示，包含非 Inspector 编辑路径；无跨状态数据、无迟到提交污染。
-- [ ] Preview 不保存成正式数据，live expected 与历史 expected/raw 来源清楚；共享噪声算法且 Phase 3 回归不变。
+- [x] 配置变更立即停止并提示，包含非 Inspector 编辑路径；无跨状态数据、无迟到提交污染。
+- [x] Preview 不保存成正式数据，live expected 与历史 expected/raw 来源清楚；共享噪声算法且 Phase 3 回归不变。
 - [ ] PRD F/G 在自动测试和实际浏览器通过，编辑器可在采集中响应修改。
-- [ ] `npm run test`、`npm run lint`、`npm run build` 全部实际通过，浏览器验收有记录。
-- [ ] 没有提前实现 Phase 5 processing/完整图表、Phase 6 3D、Phase 7 I/O 或 Phase 8 diagnostics/E2E。
-- [ ] 状态文档按实际完成情况更新，随后停止，不自动推进下一阶段。
+- [x] `npm run test`、`npm run lint`、`npm run build` 全部实际通过，浏览器验收有记录。
+- [x] 没有提前实现 Phase 5 processing/完整图表、Phase 6 3D、Phase 7 I/O 或 Phase 8 diagnostics/E2E。
+- [x] 状态文档按实际完成情况更新，随后停止，不自动推进下一阶段。
+
+未勾选项保留原要求：4A～4E和F/G工程路径已通过；SNR/OD数值定义和PRD最终差异未解决，不能据null/reason宣布整体完成。
 
 ## 9. Risks / Open Questions
 
-### 9.1 Decision Review — Approved Decisions / Open Questions
+### 9.1 Approved Decisions 与本次工程选择
 
-**日期：2026-11-08。** 初次 Q1～Q7、Q9 决策与本次 Phase 4A 授权共同构成依据。Q1-R/Q2-R/Q3-R/Q4-R/Q5-R/Q6-R/Q7-R/Q9-R 的推荐契约方向及用户补充约束均 Approved，已按 §4.6 实现；仅标记 4A Completed，Phase 4 未完成，不改 PRD。
+2026-11-08：原Q1～Q7/Q9及4A补充约束继续有效。本次用户明确授权连续4B～4F，普通工程细节自主选择并记录，不逐项等待批准；科学定义不得发明。
 
-| ID / 状态 | PRD 原有要求 | 本次 Approved 工程设计决策 | Phase 3 核对 / 差异 |
-|---|---|---|---|
-| Q1 — Approved | §40/§73 保存 N 次 mean；§46/§66 Raw 不可变 | 保留每次 Exposure 原始 CCD counts 及完成 N 次的 Acquired Raw Spectrum，二者不可变 | 逐帧留存为本次新增工程选择；原 mean-only 建议撤回；Preview 不转为正式数据，不等于 Phase 7 持久化 |
-| Q2 — Approved | §41/§74 配置变化停止且不混合 | 取消保留已完成 exposures；Run=Cancelled，不生成完整结果、不进入 Completed Runs | 新增非完成记录契约，不冒称完整 N |
-| Q3 — Approved | Single=1、Average>1；§73 示例1s/20次 | integration 有限正数；N 正安全整数，Average 默认20；最大 N 根据 CCD 规模和资源测试确定，不设未验证产品上限 | 现有 detector 允许0；正数限制仅加在正式采集边界，保持 Phase 3 原语 |
-| Q4 — Approved | §42 指标字段、§73 保存 SNR | 优先复用可靠定义；无定义用 null + 明确 undefined reason，不发明 SNR/OD 公式 | focus/有效功率 proxy/expected saturation 有来源，SNR/OD 无现成定义；PRD 数值验收差异见 §4.5 |
-| Q5 — Approved | 可测试可重复；RNG 注入是 Phase 3 工程约束 | 记录 RNG algorithm/version、独立可记录 seed、sampling algorithm/version；测试注入固定 seed | 复用 Mulberry32（mulberry32-v1）和 Box-Muller cosine；正式契约需增加 sampler version，不改变旧 Preview 输出 |
-| Q6 — Approved | 冻结实际仪器，保存四类 snapshot | 默认点击时配置、唯一可追溯链，无独立选择器，歧义拒绝；dark-only 仅限既有管线真实支持且身份明确 | 不采用 Preview 多目标排序/fallback 作为正式消歧规则 |
-| Q7 — Approved | §41/§74 科学配置改变停止 | 科学投影为身份真值，revision 仅辅助；Selection/View/Clipboard/Lock/History 本身不取消 | Undo/Redo 改变科学输入仍取消；投影见 §4.6，4D 才接线 |
-| Q9 — Approved | §42 timestamp、唯一 id | timestamp 唯一映射 started_at，UTC started_at/completed_at；Clock 可注入，ID 非空不透明 | Cancelled 仅 cancelled_at，不伪填 completed_at；无双份时间数据 |
-
-**冲突与差异报告：** Q1/Q2/Q3/Q5/Q6/Q9 细化 PRD 未规定的工程行为。Q7 需区分 history 记账和实际配置恢复；若豁免物理 Undo/Redo 将与 PRD 冲突，本计划不采用该解释。Q4 已批准如实记录 availability，但 PRD 未明确允许 null 通过 SNR 数值验收；此差异保留待审，不修改 PRD 掩盖。
-
-以下记录本次批准内容及后续 **Deferred/Open** 边界。已批准的契约方向不再阻塞 4A；Deferred 行为在对应子阶段前审核，不自动实现：
-
-| ID / 状态 | 已确认内容 / 后续边界 | 后续确认点 |
+| ID / 状态 | 原有约束与本次实施 | 边界 / 剩余事项 |
 |---|---|---|
-| Q1-R — Approved / Deferred | counts/轴/索引/clipping 证据必留，不要求 noise/unclipped arrays；内存预算、资源测试和最大 N Deferred，不静默驱逐旧 Raw | 4B～4C |
-| Q2-R — Approved / Deferred | Cancelled 原因/cancelled_at/已接受帧、无完整 mean；Error 仅 runtime 保留帧与原因，无 Error Run；手动 Stop 和历史呈现 Deferred | 4C / 4E |
-| Q3-R — Approved / Deferred | N 正安全整数；integration 有限正数；墙钟等待、资源预算和拒绝策略 Deferred | 4B 资源测试 / 4C |
-| Q4-R — Approved / Deferred | proxy 来源/单位/model/语义与 saturation 证据结构已固定；SNR/OD null/reason 只通过4A；数值方法及 PRD 总验收解释 Deferred/Open，不自动达标 | 4B 科学审核 / Phase 4 总验收 |
-| Q5-R — Approved / Deferred | 单流、uint32 seed 含0、从0编号、4 draws/bin 的消费顺序版本化；复现限定同实现/环境；正式 seed 来源与用户 seed UI Deferred | 4C / 4E |
-| Q6-R — Approved / Deferred | 唯一一致目标链；真实 dark-only；歧义/无身份拒绝；全候选解析和启动拒绝实现 Deferred | 4C |
-| Q7-R — Approved / Deferred | 投影字段/排除项见 §4.6，revision 不单独为真值；更新/比较及所有取消入口 Deferred | 4D |
-| Q8 — Open / Deferred | Preview 周期刷新、running 展示、后台 tab 与调度频率 | 4C / 4E |
-| Q9-R — Approved / Deferred | timestamp=started_at、ID 不透明、UTC Clock；ID 产生和 Clock 异常/倒退处理 Deferred | 4C |
-| Q10 — Open / Deferred | 重复 Acquire、终态重启、结果选择/历史保留；原单 active run/禁用按钮建议未批准 | 4C / 4E |
+| Q1/Q1-R — Implemented | PRD要求保存mean和不可变Raw；批准额外逐帧留存。保留counts/axis/index/clipping和mean，不要求noise arrays。会话64MiB估算预算，超量拒绝、不驱逐旧记录 | 资源估算不保证峰值heap |
+| Q2/Q2-R — Implemented | 配置变化必须停止；Cancelled保存cancelled_at、原因和已接受帧，无完整mean，不入Completed。Error只runtime保留帧与原因 | 无手动Stop UI或持久化Error Run |
+| Q3/Q3-R — Implemented | Single=1、Average>1；integration有限正数，N正安全整数、默认20。100ms分步加速模拟，integration只影响counts；按实际数据规模和已存记录预检预算 | 没有固定产品N上限或真实硬件时间承诺 |
+| Q4/Q4-R — Open numerical gate | PRD §42/§73仍要求指标；复用focus与detected effective power proxy，记录mW/source/model/科学语义。saturation保留expected与逐帧证据。SNR/OD保持null/reason | 不代表PRD数值达标，整体Exit Gate未通过 |
+| Q5/Q5-R — Implemented | 每Run crypto独立uint32 seed含0，测试可注入；单流、从0编号、4 draws/bin，算法/消费顺序版本化 | 复现限定同实现/环境，无用户seed UI |
+| Q6/Q6-R — Implemented | 无独立选择器。有实际激发时须只有一个actual-hit context，否则仅一个enabled sample context；source与返回谱仪必须唯一，fallback身份须唯一；多source/context/谱仪聚合拒绝 | dark-only仅复用实际CCD可执行配置，不伪造信号；拒绝选择歧义是已批准工程决策 |
+| Q7/Q7-R — Implemented | 科学投影为身份依据、revision仅辅助。所有公共提交原子取消、回调重检；实际科学Undo/Redo/rollback取消。忽略name/metadata/view/selection/clipboard copy/lock/history记账，-0与0等价 | 比较投影不重验已失效lineage；复制后冻结，不冻结live state |
+| Q8 — Implemented minimum | Preview继续随设计自动重算，不加周期timer、不消费Run RNG；running独立显示进度，不将partial mean冒充完整结果 | 后台任务由浏览器节流，无pause/resume或固定刷新频率承诺 |
+| Q9/Q9-R — Implemented | PRD timestamp唯一映射started_at，无双份时间。UTC ISO、可注入Clock、UUID；clock/schema失败为可读invalid-start/error，不伪填倒退完成时间 | Cancelled只用cancelled_at，已有数据保留 |
+| Q10 — Implemented minimum | 单active Run，running禁用/拒绝重复Acquire，终态可新建；旧回调失效；历史最小选择completed/cancelled，不删清空 | 记录仅session内存，刷新清空；未做Phase7持久化 |
+
+PRD与工程决定保持区分：逐帧留存、seed/时间格式、资源预算、目标拒绝规则是工程细化；不得据此更改PRD。SNR/OD缺少可靠定义是显式未解决的数值验收差异，不能以null/reason自动关闭。
 
 ### 9.2 工程风险与控制
 
@@ -405,4 +424,4 @@ Phase 4 完成必须同时满足：
 | 必需 Run 指标缺口被隐藏在“Phase 3 已完成”摘要中 | 按 Q4 复用已有定义，缺失定义保存 null/reason 并报告验收差异，不伪造数值 |
 | 领域记录过早变成完整 Project schema | 仅实现 Acquisition 所需契约；Phase 7 才确定外部文件 schemaVersion/migration |
 
-后续顺序：**4B Exposure/Mean/Metrics → 4C Runtime → 4D Cancellation → 4E UI → 4F Regression**。本次仅完成 4A 契约与增量验收，不开始 4B，等待审核及下一次明确实施指令。
+本次连续4B～4F工作到此停止。4B～4E工程完成，4F验证已执行；总PRD Exit Gate因SNR/OD数值定义缺失未通过，等待下一轮审核，不自动进入Phase5。

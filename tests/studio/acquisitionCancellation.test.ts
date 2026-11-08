@@ -11,6 +11,12 @@ const move = (store: StudioStore) => {
 }
 const operations: [string, (store: StudioStore) => void][] = [
   ['move', move],
+  ['rotation', (s) => { const mirror = component(s, 'mirror'); s.getState().updateComponentTransform(mirror.id,
+    Transform2DSchema.parse({ ...mirror.transform, rotation_deg: mirror.transform.rotation_deg + 5 })) }],
+  ['batch transforms', (s) => { const mirror = component(s, 'mirror'); s.getState().updateComponentTransforms([
+    { componentId: mirror.id, transform: Transform2DSchema.parse({ ...mirror.transform, x_mm: mirror.transform.x_mm + 5 }) }]) }],
+  ['alignment', (s) => { s.getState().setSelectionIds([component(s, 'laser').id, component(s, 'mirror').id]); s.getState().alignSelectedComponents('left') }],
+  ['distribution', (s) => { s.getState().setSelectionIds([component(s, 'laser').id, component(s, 'mirror').id, component(s, 'sample').id]); s.getState().distributeSelectedComponents('horizontal') }],
   ['optical parameter', (s) => s.getState().updateComponentParameters(component(s, 'mirror').id, { reflectivity: 0.5 })],
   ['sample', (s) => s.getState().updateComponentParameters(component(s, 'sample').id, { material_id: 'material:polystyrene' })],
   ['wavelength', (s) => { const laser = component(s, 'laser'); s.getState().updateComponentParameters(laser.id, { ...laser.parameters, wavelength_nm: 633 }) }],
@@ -21,6 +27,7 @@ const operations: [string, (store: StudioStore) => void][] = [
   ['duplicate', (s) => { s.getState().setSelection(component(s, 'mirror').id); s.getState().duplicateSelection() }],
   ['paste', (s) => { s.getState().setSelection(component(s, 'mirror').id); s.getState().copySelection(); s.getState().pasteClipboard() }],
   ['detector', (s) => s.getState().setDetectorConfiguration({ ...s.getState().authoritative.detectorConfiguration, read_noise_rms_counts: 12 })],
+  ['spectrometer throughput', (s) => { const spectrometer = component(s, 'spectrometer'); s.getState().updateComponentParameters(spectrometer.id, { ...spectrometer.parameters, optical_throughput: 0.5 }) }],
   ['integration', (s) => s.getState().setDetectorConfiguration({ ...s.getState().authoritative.detectorConfiguration, integration_time_s: 2 })],
   ['simulation', (s) => s.getState().setSimulationConfiguration({ ...s.getState().authoritative.simulationConfiguration, max_generations: 10 })],
   ['replaceScene', (s) => { const mirror = component(s, 'mirror'); s.getState().replaceScene({ ...s.getState().authoritative.scene,
@@ -64,7 +71,10 @@ describe('Phase 4D configuration cancellation boundaries', () => {
     store.getState().updateComponentCommon(mirror.id, { name: 'New label' })
     store.getState().undo()
     store.getState().redo()
-    store.getState().replaceScene(structuredClone(store.getState().authoritative.scene))
+    const equalScene = structuredClone(store.getState().authoritative.scene)
+    const laser = equalScene.components.find((c) => c.type === 'laser')!
+    laser.transform = Transform2DSchema.parse({ ...laser.transform, rotation_deg: -0 })
+    store.getState().replaceScene(equalScene)
     expect(store.getState().acquisition.runtime.status).toBe('running')
     expect(Object.isFrozen(component(store, 'mirror').transform)).toBe(false)
     scheduler.flush()
@@ -85,8 +95,7 @@ describe('Phase 4D configuration cancellation boundaries', () => {
 
   it.each(['exposure', 'completion'] as const)('rejects final-frame %s races with edits', (stage) => {
     const scheduler = manualAcquisitionScheduler()
-    let store: StudioStore
-    store = createStudioStore(undefined, undefined, undefined, { ...scheduler.services,
+    const store: StudioStore = createStudioStore(undefined, undefined, undefined, { ...scheduler.services,
       expose: (...args) => { const frame = simulateAcquisitionExposure(...args); if (stage === 'exposure') move(store); return frame },
       complete: (...args) => { const run = completeAcquisition(...args); if (stage === 'completion') move(store); return run },
     })

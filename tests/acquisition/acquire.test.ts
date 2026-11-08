@@ -3,6 +3,7 @@ import {
   AcquisitionInputSchema, AcquisitionExposureSchema, averageAcquisitionExposures,
   completeAcquisition, createAcquisitionRandom, simulateAcquisitionExposure,
   simulateCcdPreviewExposure, createMulberry32RandomNumberGenerator,
+  createAcquisitionRngProvenance,
 } from '../../src/core/acquisition'
 import { acquisitionContractFixture } from '../fixtures/acquisitionContracts'
 
@@ -56,5 +57,29 @@ describe('Phase 4B exposures, mean and metric availability', () => {
       expected_spectrum: { ...fixture.input.expected_spectrum, detector } })
     const frames = fixture.exposures.map((f) => AcquisitionExposureSchema.parse({ ...f, counts: [Number.MAX_VALUE, Number.MAX_VALUE], detector_bounds: { minimum_counts: 0, maximum_counts: Number.MAX_VALUE } }))
     expect(averageAcquisitionExposures(input, frames).counts).toEqual([Number.MAX_VALUE, Number.MAX_VALUE])
+  })
+
+  it('reduces independent unclipped noise variance approximately by 1/N', () => {
+    const fixture = acquisitionContractFixture()
+    const first: number[] = []
+    const means: number[] = []
+    for (let seed = 0; seed < 400; seed += 1) {
+      const input = AcquisitionInputSchema.parse({ ...fixture.input, id: `statistics:${seed}`,
+        request: { mode: 'average', number_of_exposures: 4 }, rng: createAcquisitionRngProvenance(seed),
+        expected_spectrum: { ...fixture.input.expected_spectrum,
+          expected_counts: [100, 100], signal_counts: [100, 100], dark_counts: [0, 0],
+          unclipped_expected_counts: [100, 100], saturated: [false, false], saturated_bin_count: 0 } })
+      const rng = createAcquisitionRandom(input)
+      const frames = Array.from({ length: 4 }, (_, i) => simulateAcquisitionExposure(input, i, rng))
+      first.push(frames[0]!.counts[0]!)
+      means.push(averageAcquisitionExposures(input, frames).counts[0]!)
+    }
+    const variance = (values: number[]) => {
+      const mean = values.reduce((a, b) => a + b, 0) / values.length
+      return values.reduce((v, x) => v + (x - mean) ** 2, 0) / values.length
+    }
+    const ratio = variance(means) / variance(first)
+    expect(ratio).toBeGreaterThan(0.15)
+    expect(ratio).toBeLessThan(0.35)
   })
 })

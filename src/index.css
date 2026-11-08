@@ -184,7 +184,7 @@ button {
 
 .studio-center-stack {
   display: grid;
-  grid-template-rows: minmax(360px, 1.45fr) minmax(300px, 1fr) auto;
+  grid-template-rows: minmax(360px, 1.45fr) minmax(300px, 1fr) max-content;
   gap: 12px;
   min-width: 0;
   min-height: 0;
@@ -1175,11 +1175,15 @@ button {
 
   .studio-workspace {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: max-content max-content max-content;
+    align-content: start;
     overflow: auto;
   }
 
   .studio-center-stack {
     overflow: visible;
+    min-height: min-content;
+    grid-template-rows: auto auto auto;
   }
 
   .spectrum-panel-body {

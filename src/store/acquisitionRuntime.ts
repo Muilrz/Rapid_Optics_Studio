@@ -27,7 +27,15 @@ export interface AcquisitionServices {
   readonly schedule?: (callback: () => void) => () => void
   readonly expose?: typeof simulateAcquisitionExposure
   readonly complete?: typeof completeAcquisition
+  readonly retainedDataBudgetBytes?: number
 }
+
+/** Conservative retained-data estimate, not a promise about peak engine heap.
+ * Covers counts/axis/masks per frame plus frozen expected/raw and metadata.
+ * The budget is per session; records are never silently evicted. */
+export const estimateAcquisitionRetentionBytes = (bins: number, exposures: number) =>
+  bins * (64 * exposures + 128) + 65_536
+export const DEFAULT_ACQUISITION_DATA_BUDGET_BYTES = 64 * 1024 * 1024
 
 interface Job {
   readonly token: string
@@ -129,6 +137,14 @@ export const createAcquisitionController = (
         if ([...read().completedRuns, ...read().cancelledRuns].some((r) => r.input.id === id)) throw new Error('Run ID already exists.')
         const seed = (services.seed ?? (() => crypto.getRandomValues(new Uint32Array(1))[0]!))()
         const input = buildAcquisitionInput(design(), request, id, now(), seed)
+        const budget = services.retainedDataBudgetBytes ?? DEFAULT_ACQUISITION_DATA_BUDGET_BYTES
+        if (!Number.isFinite(budget) || budget <= 0) throw new Error('Invalid acquisition retention budget.')
+        const retained = [...read().completedRuns, ...read().cancelledRuns].reduce((bytes, run) =>
+          bytes + estimateAcquisitionRetentionBytes(run.input.expected_spectrum.axis.values_cm_1.length, run.exposures.length), 0)
+        const requested = estimateAcquisitionRetentionBytes(input.expected_spectrum.axis.values_cm_1.length, request.number_of_exposures)
+        if (!Number.isFinite(requested) || retained + requested > budget) {
+          throw new RangeError(`Requested data exceeds this session's ${Math.round(budget / 1024 / 1024)} MiB retention safety budget. Reduce N; existing Runs are kept.`)
+        }
         const active: Job = { token: `acquisition:${++sequence}`, input,
           random: createAcquisitionRandom(input), frames: Object.freeze([]), unschedule: undefined }
         job = active

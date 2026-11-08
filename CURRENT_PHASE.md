@@ -1,55 +1,38 @@
 # Rapid Optics Studio — Current Development Status
 
-> **Updated:** 2026-11-08 (Asia/Singapore)  
-> **Implemented baseline:** Phase 3 + Phase 4A Acquisition Contracts<br>
-> **Current task:** Phase 4A 已完成，等待审核<br>
-> **Review state:** 4A Exit Gate 通过；4B～4F 未开始；SNR/OD 数值与 PRD 最终验收差异仍待后续审核
+> **Updated:** 2026-11-08 (Asia/Singapore)<br>
+> **Implemented baseline:** Phase 3 + Phase 4A～4E acquisition engineering<br>
+> **Current task:** 本次连续4B～4F授权已执行，停止等待审核<br>
+> **Review state:** 4F工程/浏览器验证已执行；Phase 4总PRD Exit Gate **未通过**（SNR/Rayleigh OD数值定义缺失）
 
-## 状态与证据
+## 当前能力与边界
 
-- Phase 0～2 已有工程、Optical Core 和 2D Studio 实现；Phase 3 的完成声明及 2026-11-08 Edge 验收记录保留在 [PHASE3_PLAN.md](PHASE3_PLAN.md) 第 3G 节。
-- 当前代码新增 AcquisitionRequest/Exposure/Raw/InstrumentSnapshot/Completed/Cancelled Run/Runtime 契约、strict Zod 校验、深层 readonly/freeze、科学配置数据投影与 fixtures；尚无正式曝光生成、Average N 算法、采集执行/调度、取消接线或 UI。
-- 科学核心不依赖 React/Zustand/DOM；未改变既有 Phase 3 CCD/Preview/RNG API，未增加依赖或 Project 文件 schema。Run 数据不写入 Store/Editor History。
-- Q1-R/Q2-R/Q3-R/Q4-R/Q5-R/Q6-R/Q7-R/Q9-R 契约方向 Approved 并实现；SNR/OD null/reason 仅通过4A，不声明满足 Phase 4 数值验收。剩余 Deferred/Open 详见 PHASE4_PLAN.md §9.1。
-- 本次验证：新增及相关 Phase 3 增量测试 5 files / 82 tests passed（其中新增44项）；`npm run lint`、`npm run build`、`git diff --check` 均通过。按用户最新要求未运行 full test；大阶段验收再运行。无交互行为修改，未运行浏览器验收，不以历史记录替代。
-- 工作区原有未跟踪文件 `tests/regression/phase3PipelineRegression.test.ts` 未添加、修改、删除或纳入本次增量测试，不以本任务确认其归档状态。
-- 应用代码 `src/app/stage.ts` 的 UI 标记仍为 Phase 3G；4A 仅新增未接线的核心数据契约，不提前改变运行中的 UI。
+- 4A契约基线893a0b6；分层测试规则f0b2803。本次连续授权优先：4B～4E定向推进，4F统一完整验证。
+- 4B：共享Phase3 CCD噪声realization、每Run独立连续RNG、N次新exposure、稳定算术均值、immutable逐帧/mean；Preview API/固定seed行为保持。
+- 4C：冻结Scene/Simulation/Material/Spectrometer/Detector，唯一目标解析；idle/running/completed/cancelled/error；可注入scheduler/clock/seed，有限N自动结束、原子完成、迟到回调保护。
+- 4D：公共科学提交边界原子取消，含Undo/Redo/transaction rollback/replaceScene、detector/simulation；科学投影为真值。选择/视图/clipboard copy/lock/name-only和history记账不误取消。
+- 4E：Single/Average、Acquire、k/N、取消/错误提示、历史选择、冻结Expected/Raw、snapshot/指标摘要；使用历史自身axis/full well。窄屏Grid压缩已修复。
+- Run数据不混入Editor History；无新依赖、后端、Project I/O或Phase5～8功能。取消保留帧、不生成完整mean；Error仅runtime保留数据。
+- SNR/OD仍为null + reason，不构造未经批准的科学公式；功率为带mW/source/model/科学语义的effective proxy。PRD §42/§73数值验收仍未满足，不能宣布Phase4全部Completed。
 
-## 前次文档整理记录（历史）
+## 实际验证
 
-| 文档 | 职责 | 本次处理 |
-|---|---|---|
-| [PRD.md](PRD.md) | 产品需求、科学约束、验收标准 | 保持原样 |
-| [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) | Phase 0～8 总路线、架构基线、依赖、阶段 Exit Gate、专项索引 | 移出 Phase 0/1 详细施工章节，纠正末尾过时的 Phase 0 下一步指令 |
-| [PHASE0_PLAN.md](PHASE0_PLAN.md) / [PHASE1_PLAN.md](PHASE1_PLAN.md) | 已完成早期阶段的详细施工历史 | 从原总体计划原意迁出；未重新验证历史完成证据 |
-| [PHASE3_PLAN.md](PHASE3_PLAN.md) | Phase 3 详细施工与历史验收 | 保持原样，不写入 Phase 4 细节 |
-| [PHASE4_PLAN.md](PHASE4_PLAN.md) | Phase 4 详细施工草案 | 新增，明确建议、已确定约束与待确认项 |
-| 本文件 | 当前状态、审核点、下一步边界 | 新增，集中动态进度 |
-| [README.md](README.md) | 仓库入口、简短状态、命令与链接 | 缩短状态重复，补充入口 |
-| [AGENTS.md](AGENTS.md) | Agent 执行规则及文档使用规则 | 补充专项计划与状态文档职责 |
+| 类别 | 结果 |
+|---|---|
+| Targeted Tests | 4B核心/Preview、4C状态调度、4D取消（最终26项）、4E渲染；4F F/G、不变性、统计与资源边界通过 |
+| Full Tests | npm run test：59 files / 477 tests passed |
+| Lint | npm run lint passed |
+| Build | npm run build passed |
+| Diff | git diff --check passed |
+| Browser | 本地Vite/in-app Chromium：Single、1s×20 Average、Mirror移动取消（0/20与1/20）、invalid integration恢复、历史Raw不变、取消记录无完整图、快照与Undefined指标、修复后鼠标可用；页面console warning/error为空 |
 
-## 结构问题与处理结论
+首次完整验证发现旧阶段smoke期望、测试prefer-const与资源测试Node类型问题；定位并定向重跑后修正。477项完整测试通过之后，仅将资源测试的Node字节计数等价替换为TextEncoder，重跑该3项及lint/build通过；未无意义地重复full test。Phase3未跟踪测试在完整测试中被执行，仍未修改或提交。
 
-1. **过时状态指令：** 总体计划末尾仍要求下一步 Phase 0，与 Phase 3 Completed 记录不一致。现改为引用本文件，不改写早期施工历史。
-2. **状态重复：** README 长段状态、Phase 3 顶部状态、应用标记职责不清。动态进度集中于本文件；历史完成日期保留于原专项计划，README 仅摘要，应用标记差异如上记录。
-3. **职责缺失：** AGENTS 未解释 `PHASE*_PLAN` / `CURRENT_PHASE`；总体计划没有专项索引。现已补齐。
-4. **详细计划分布不一致：** Phase 0/1 原来嵌在总体计划，Phase 2 没有独立计划，Phase 3 起采用独立文件。现将 Phase 0/1 详细内容迁入独立历史计划；Phase 2 明确标注“无独立计划留存”，不根据代码倒推或补造历史。
-5. **Preview 跨阶段表面重叠：** PRD 第 80 节把 Preview 列在 Phase 4，Phase 3 已提供该原语和 UI。这是依赖前置，不删产品要求；Phase 4 复用并验证预览与正式采集的区别。
-6. **技术建议差异：** PRD 的 Node/monorepo/库推荐与当前 browser-only 单项目决策不同，已有总体计划第 3.3、5.1 的解释。继续按工程职责使用现行基线，不改 PRD，不重开架构。
-7. **局部说明落后代码：** `src/core/acquisition/README.md` 开头声称仅 Phase 3D/no preview，后文却描述 Phase 3E，代码也已有 seeded noise。该局部措辞整理留待后续获授权维护，本次不扩展为模块文档清理。
-8. **需求不等于已有指标实现：** PRD 要求 Run 保存 Rayleigh OD / SNR；当前 SpectrumPreview 未见这两个读数，代码也未见可直接复用的对应 Run 指标函数。Phase 4 必需 Run 指标列入专项计划，公式与边界列为 Open Questions；不把缺口笼统推迟到 Phase 8，也不因此否定已有 Phase 3 历史记录。
+详细浏览器和资源测量见PHASE4_PLAN.md第4F节。1400-bin样本N20/N200的JSON约1.60MB/13.96MB；会话64MiB留存估算预算按N×bins及旧记录共同预检，超量拒绝、不驱逐Raw。预算不是峰值heap保证；后台节流会延长墙钟时间，session数据刷新即丢失。
 
-## 前次 Decision Review（历史）
+## Git与停止边界
 
-- 已将用户明确确认的 Q1～Q7、Q9 决策写入 [PHASE4_PLAN.md](PHASE4_PLAN.md) §9.1，更新 Data Contracts、State Machine、逐子阶段与总体测试要求；Approved 不等于 4A 完成。
-- 逐帧 CCD counts 与完整 raw mean 均不可变；Cancelled 保留已完成帧但无完整结果，不进入 Completed Runs；正式 integration >0、Average 默认 N=20，无未经资源测试的产品上限。
-- 复用 Phase 3 可靠指标；无定义的 SNR/OD 用 null + reason。PRD 未明确 null 的数值验收含义，差异显式待审，不改 PRD。History 记账不取消，但 Undo/Redo 改变科学输入仍取消。
-- RNG/sampler version、独立 seed、点击时配置 snapshot、科学配置 revision/等效机制、UTC startedAt/completedAt 和可注入 Clock 已批准；剩余细节、Q8/Q10 仍 Open。
-- 本次无生产代码、测试、依赖或 reference 修改；不运行功能验证，仅检查文档 diff。原有未跟踪回归测试保持原样，不纳入提交。
-
-## 下一步与停止边界
-
-1. 审核本次 4A 契约及测试；4A 已完成，Phase 4 整体未完成。
-2. 下一个子阶段为 4B Exposure Reuse, Mean & Metrics；先审核适用 Deferred（尤其数值指标定义/资源测试），明确授权后才实施。
-3. 未实现4B曝光/平均/指标算法、4C调度/转移、4D取消接线、4E UI 或 Phase 5～8；reference、依赖、PRD、原有未跟踪测试保持原样。
-4. 本次验证后按用户授权提交并 Push 至 origin/main，随后停止等待下一轮审核。
+- 4B、4C、4D、4E分别形成中文提交；4F提交包含最终回归/资源防护/布局修复/真实状态记录。
+- 原有未跟踪tests/regression/phase3PipelineRegression.test.ts保持原样，不静默纳入版本基线。
+- PRD、reference、依赖保持原样。应用阶段标签已显示Phase4及numerical SNR/OD pending。
+- 本次按授权提交并Push至origin/main后停止。下一步仅等待审核及SNR/OD科学定义/验收差异处理；不自动进入Phase5。

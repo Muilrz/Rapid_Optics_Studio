@@ -4,7 +4,7 @@ Rapid Optics Studio is a Raman-first scientific engineering studio for building,
 
 ## Status
 
-V1 under development. **Phase 3 — Raman + Virtual CCD** is recorded as completed. **Phase 4A — Acquisition Contracts** is implemented and validated with targeted tests: immutable snapshots, exposures/raw data, Completed/Cancelled records, runtime data shapes, and versioned provenance. Acquisition execution, averaging, cancellation integration, and UI have not started. SNR/OD availability does not satisfy final numerical acceptance. See [`CURRENT_PHASE.md`](CURRENT_PHASE.md) for evidence and the next authorized boundary.
+V1 under development. **Phase 4 acquisition engineering is implemented through 4E**: Single/Average, immutable snapshots and frames/raw means, finite asynchronous acquisition, configuration-change cancellation, and historical result inspection. **4F engineering/browser verification has run; the overall Phase 4 PRD Exit Gate has not passed**, because SNR/Rayleigh OD numerical definitions remain unresolved. Tests: 59 files / 477 cases passed; lint/build passed. See [`CURRENT_PHASE.md`](CURRENT_PHASE.md) for evidence and limitations. Phase 5 has not started.
 
 Phase 3 remains an explicitly **Simplified / First-order** engineering model. Material intensities are relative and phenomenological; focus uses a provisional millimetre-based defocus model; optical and spectrometer throughput are simplified; QE follows the documented Gaussian approximation; and preview noise uses a seeded Gaussian approximation rather than an exact Poisson detector model. The preview is not an acquisition run or processed spectrum.
 

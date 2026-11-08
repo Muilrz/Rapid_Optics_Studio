@@ -113,7 +113,7 @@ const SnapshotDataSchema = z.strictObject({
 })
 
 const sameData = (left: unknown, right: unknown): boolean => {
-  if (Object.is(left, right)) return true
+  if (left === right) return true
   if (left === null || right === null || typeof left !== 'object' || typeof right !== 'object') return false
   if (Array.isArray(left) !== Array.isArray(right)) return false
   const a = Object.entries(left)
