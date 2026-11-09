@@ -3,6 +3,7 @@ import { ComponentLibrary } from './features/studio/ComponentLibrary'
 import { OpticalBench } from './features/studio/OpticalBench'
 import { PropertyInspector } from './features/studio/PropertyInspector'
 import { SpectrumPreview } from './features/spectrum/SpectrumPreview'
+import { SpectrumAnalysis } from './features/spectrum/SpectrumAnalysis'
 import { AcquisitionPanel } from './features/acquisition/AcquisitionPanel'
 import { useStudioStore } from './store/studioStore'
 
@@ -139,6 +140,7 @@ function App() {
           </div>
           <SpectrumPreview />
           <AcquisitionPanel />
+          <SpectrumAnalysis />
         </div>
         <PropertyInspector />
       </section>

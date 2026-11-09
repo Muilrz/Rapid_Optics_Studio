@@ -4,7 +4,7 @@ Rapid Optics Studio is a Raman-first scientific engineering studio for building,
 
 ## Status
 
-V1 under development. **Phase 4 — Acquisition Completed.** Real UI acceptance passed Scenario F at 1s × 20 using the existing laser set to 0.1mW, with finite predicted Peak SNR, available Rayleigh path OD, retained frames/mean and immutable snapshot; configuration-change cancellation G also passed. The default 10mW saturated scene correctly retains Undefined SNR. These are limited model metrics, not calibrated hardware measurements. Final closure: targeted 6 files / 56 cases, lint/build passed; full tests were not rerun (unchanged scientific baseline 6d1f41d previously passed 60 files / 490 cases). See [`CURRENT_PHASE.md`](CURRENT_PHASE.md) and the [metric definitions](src/core/acquisition/README.md) for evidence and validity limits. Phase 5 has not started.
+V1 under development. **Phase 5 — Spectrum Analysis Completed.** Analyze a completed Run with replayable baseline correction, smoothing and normalization, inspect peaks, and overlay spectra from different Runs. Analysis is session-scoped. See [current status](CURRENT_PHASE.md) and the [Phase 5 acceptance record](PHASE5_PLAN.md).
 
 Phase 3 remains an explicitly **Simplified / First-order** engineering model. Material intensities are relative and phenomenological; focus uses a provisional millimetre-based defocus model; optical and spectrometer throughput are simplified; QE follows the documented Gaussian approximation; and preview noise uses a seeded Gaussian approximation rather than an exact Poisson detector model. The preview is not an acquisition run or processed spectrum.
 
