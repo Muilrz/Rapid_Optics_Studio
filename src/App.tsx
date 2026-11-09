@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { DiagnosticsPanel, EngineeringStatus } from './features/studio/DiagnosticsPanel'
 import { ProjectControls } from './features/project/ProjectControls'
 import { PresentationSection } from './features/presentation/PresentationSection'
 import { CURRENT_PHASE } from './app/stage'
@@ -10,9 +12,11 @@ import { AcquisitionPanel } from './features/acquisition/AcquisitionPanel'
 import { useStudioStore } from './store/studioStore'
 
 function App() {
+  const [workspace, setWorkspace] = useState('Bench')
   const epoch = useStudioStore((state) => state.projectEpoch)
   const scene = useStudioStore((state) => state.authoritative.scene)
   const trace = useStudioStore((state) => state.derived.trace)
+  const traceFailure = useStudioStore((state) => state.derived.traceFailure)
   const spectrum = useStudioStore((state) => state.derived.spectrum)
   const snapEnabled = useStudioStore((state) => state.editor.snapEnabled)
   const selectedCount = useStudioStore(
@@ -112,14 +116,22 @@ function App() {
       </header>
 
       <ProjectControls />
-      <section key={epoch} className="studio-workspace" aria-label="2D Studio">
-        <ComponentLibrary />
+      <nav className="workspace-navigation" aria-label="Studio workspaces">
+        {['Bench', '3D', 'Spectrum', 'Acquisition', 'Analysis', 'Diagnostics'].map((name) =>
+          <button type="button" key={name} aria-pressed={workspace === name} onClick={() => setWorkspace(name)}>{name}</button>)}
+      </nav>
+      <section key={epoch} className={`studio-workspace${workspace === 'Bench' ? '' : ' studio-workspace--full'}`} aria-label={workspace === 'Bench' ? '2D Studio' : workspace + ' workspace'}>
+        {workspace === 'Bench' && <ComponentLibrary />}
         <div className="studio-center-stack">
-          <div className="bench-panel">
+          {workspace === 'Bench' && <div className="bench-panel">
             <div className="panel-heading">
               <div>
                 <p className="panel-kicker">Authoritative view</p>
                 <h2>Optical Bench</h2>
+              </div>
+              <div className="bench-shortcuts">
+                <a href="#component-library">Library</a>
+                <a href="#property-inspector">Inspector</a>
               </div>
               <div className="ray-legend" aria-label="Ray legend">
                 <span className="legend-item">
@@ -134,6 +146,7 @@ function App() {
             </div>
             <OpticalBench />
             <footer className="bench-statusbar">
+              {traceFailure && <span role="alert">Trace failed · {traceFailure}</span>}
               <span>{scene.components.length} components</span>
               <span>{selectedCount} selected</span>
               <span>{trace.rays.length} rays</span>
@@ -141,14 +154,16 @@ function App() {
               <span>Grid {pitch_mm} mm</span>
               <span>World coordinates · mm</span>
             </footer>
-          </div>
-          <PresentationSection />
-          <SpectrumPreview />
-          <AcquisitionPanel />
-          <SpectrumAnalysis />
+          </div>}
+          {workspace === '3D' && <PresentationSection />}
+          {workspace === 'Spectrum' && <SpectrumPreview />}
+          <div hidden={workspace !== 'Acquisition'}><AcquisitionPanel /></div>
+          <div hidden={workspace !== 'Analysis'}><SpectrumAnalysis /></div>
+          {workspace === 'Diagnostics' && <DiagnosticsPanel onLocate={() => setWorkspace('Bench')} />}
         </div>
-        <PropertyInspector />
+        {workspace === 'Bench' && <PropertyInspector />}
       </section>
+      <EngineeringStatus />
     </main>
   )
 }

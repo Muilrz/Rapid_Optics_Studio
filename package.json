@@ -11,18 +11,21 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run --maxWorkers 4 --exclude **/phase8Benchmark.test.ts",
+    "benchmark": "vitest run tests/performance/phase8Benchmark.test.ts --disableConsoleIntercept",
+    "test:e2e": "playwright test",
     "test:watch": "vitest"
   },
   "dependencies": {
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "three": "^0.185.1",
-    "zod": "^4.4.3",
+    "zod": "^4.6.6",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.0",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",

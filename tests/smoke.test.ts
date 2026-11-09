@@ -4,8 +4,8 @@ import { CURRENT_PHASE, PRODUCT_STATUS } from '../src/app/stage'
 describe('application stage', () => {
   it('exposes the current project status from a TypeScript module', () => {
     expect(CURRENT_PHASE).toBe(
-      'Phase 7 — Project & I/O',
+      'Phase 8 Completed · V1',
     )
-    expect(PRODUCT_STATUS).toBe('V1 under development')
+    expect(PRODUCT_STATUS).toBe('V1 complete')
   })
 })

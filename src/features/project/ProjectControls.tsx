@@ -162,16 +162,19 @@ export function ProjectControls() {
       <button type="button" disabled={!!busy} onClick={() => void open()}>Open Project</button>
       <button type="button" disabled={!!busy} onClick={() => void save(false)}>Save</button>
       <button type="button" disabled={!!busy} onClick={() => void save(true)}>Save As</button>
-      <span>{dirty ? 'Unsaved changes' : 'No unsaved changes'}{handle ? ' · ' + handle.name : ''}</span>
+      <span className="project-dirty" data-dirty={dirty}>{dirty ? 'Unsaved changes' : 'No unsaved changes'}{handle ? ' · ' + handle.name : ' · no linked file'}</span>
     </div>
     {runtime === 'running' && <p>Save includes completed Runs. Switching projects stops the active acquisition.</p>}
-    <div className="analysis-controls">
+    <details className="project-tools">
+      <summary>Import, export &amp; settings</summary>
+      <div className="analysis-controls">
       <button type="button" disabled={!!busy} onClick={() => void importConfiguration()}>Import Optical Configuration</button>
       <button type="button" disabled={!!busy} onClick={() => void exportConfiguration()}>Export Optical Configuration</button>
       <button type="button" disabled={!!busy} onClick={() => void importSpectrum()}>Import Spectrum</button>
-    </div>
-    <SimulationSettings key={'simulation-' + epoch} />
-    <MaterialInput key={'materials-' + epoch} />
+      </div>
+      <SimulationSettings key={'simulation-' + epoch} />
+      <MaterialInput key={'materials-' + epoch} />
+    </details>
     <div role="status">{busy || status}</div>
     {error && <div role="alert" className="project-error">{error}</div>}
   </section>

@@ -624,7 +624,7 @@ Phase 8 Diagnostics + Hardening
 | 5 | [PHASE5_PLAN.md](PHASE5_PLAN.md) | Completed，Scenario H 与浏览器交互验收记录 |
 | 6 | [PHASE6_PLAN.md](PHASE6_PLAN.md) | 3D Presentation 施工契约与 Scenario J 验收记录 |
 | 7 | [PHASE7_PLAN.md](PHASE7_PLAN.md) | Completed，Project & I/O 施工契约与 Scenario I 验收记录 |
-| 8 | 尚未编写专项计划 | 当前由本路线图定义阶段范围与 Exit Gate |
+| 8 | [PHASE8_PLAN.md](PHASE8_PLAN.md) | 诊断、可靠性、性能、UI/UX、浏览器验收与 V1 Exit Gate |
 
 专项计划细化本路线图，不改变 PRD 产品需求。计划状态与开发进度以 `CURRENT_PHASE.md` 为入口；不得把“计划已编写”解释成“实现已获授权”。
 

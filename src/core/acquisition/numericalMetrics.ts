@@ -1,4 +1,5 @@
 import type { AcquisitionExposure, AcquisitionInput, RawAcquiredSpectrum } from './acquisitionContracts'
+import type { RamanOpticalContext } from '../raman'
 import { RAMAN_SANDBOX_NOISE_PARAMETERS } from './modelParameters'
 import { calculateExpectedCcdSpectrum, synthesizeRamanSpectrumAtSpectrometerInput } from './virtualSpectrometer'
 
@@ -39,8 +40,7 @@ const unavailable = (undefined_reason: string): UndefinedNumericalMetric =>
 /** Model path attenuation, not a calibrated filter T(lambda, AOI, polarization).
  * Reference is a unit Rayleigh return at Sample, before return-path losses;
  * output is at Spectrometer INPUT, excluding detector QE/grating/electronics. */
-export const calculateRayleighOd = (input: AcquisitionInput): AvailableRayleighOd | UndefinedNumericalMetric => {
-  const context = input.instrument_snapshot.context
+export const calculateContextRayleighOd = (context: RamanOpticalContext): AvailableRayleighOd | UndefinedNumericalMetric => {
   if (!context.rayleigh_return.geometric_path_reaches_spectrometer || context.excitation_wavelength_nm === null) {
     return unavailable('No traced Sample-return to Spectrometer-input path with an excitation wavelength; path transmission is unavailable.')
   }
@@ -55,6 +55,9 @@ export const calculateRayleighOd = (input: AcquisitionInput): AvailableRayleighO
     transmission, excitation_wavelength_nm: context.excitation_wavelength_nm,
   })
 }
+
+export const calculateRayleighOd = (input: AcquisitionInput): AvailableRayleighOd | UndefinedNumericalMetric =>
+  calculateContextRayleighOd(input.instrument_snapshot.context)
 
 /** RMS of the actual Phase 3 Gaussian generator, in output counts/bin.
  * Dark/background are ALREADY in expected counts. No extra gain or dark term.

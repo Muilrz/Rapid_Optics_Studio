@@ -45,6 +45,7 @@ export type StudioSpectrumSimulation =
 
 export interface DerivedStudioSimulation {
   readonly trace: TraceResult
+  readonly traceFailure?: string
   readonly ramanContexts: readonly RamanOpticalContext[]
   readonly spectrum: StudioSpectrumSimulation
 }
@@ -93,9 +94,18 @@ const selectPrimaryContext = (
 export const deriveStudioSimulation = (
   input: DeriveStudioSimulationInput,
 ): DerivedStudioSimulation => {
-  const trace =
-    input.trace ??
-    traceOpticalScene(input.scene, input.simulationConfiguration)
+  let trace: TraceResult
+  try {
+    trace = input.trace ?? traceOpticalScene(input.scene, input.simulationConfiguration)
+  } catch (error) {
+    const traceFailure = error instanceof Error ? error.message : 'Unknown trace failure.'
+    return Object.freeze({
+      trace: Object.freeze({ rays: Object.freeze([]), segments: Object.freeze([]), events: Object.freeze([]), processedRayCount: 0 }),
+      traceFailure,
+      ramanContexts: Object.freeze([]),
+      spectrum: unavailable(`Optical trace unavailable: ${traceFailure}`),
+    })
+  }
   const samples = input.scene.components.filter(
     (component) => component.type === 'sample',
   )

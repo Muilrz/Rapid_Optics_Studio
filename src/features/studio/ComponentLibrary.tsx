@@ -30,7 +30,7 @@ export function ComponentLibrary() {
   }
 
   return (
-    <aside className="component-library" aria-label="Component Library">
+    <aside id="component-library" className="component-library" aria-label="Component Library" tabIndex={-1}>
       <div className="side-panel-header">
         <p className="info-label">Build the scene</p>
         <h2>Component Library</h2>

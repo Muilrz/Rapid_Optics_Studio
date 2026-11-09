@@ -104,7 +104,7 @@ export function AcquisitionPanel() {
         <label className="spectrum-control"><span>Number of exposures</span><input aria-label="Number of exposures" className="spectrum-control-input" inputMode="numeric"
           value={mode === 'single' ? '1' : draftN} disabled={running || mode === 'single'} aria-invalid={error !== null}
           onChange={(e) => { setDraftN(e.target.value); setError(null) }} /></label>
-        <span className="acquisition-integration">Integration {detector.integration_time_s} s<br /><small>Edit in Spectrum parameters above</small></span>
+        <span className="acquisition-integration">Integration {detector.integration_time_s} s<br /><small>Edit in the Spectrum workspace</small></span>
         <button className="toolbar-button" type="submit" disabled={running}>Acquire</button>
       </form>
       {error && <p role="alert">{error}</p>}

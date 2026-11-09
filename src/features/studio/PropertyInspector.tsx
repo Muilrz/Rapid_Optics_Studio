@@ -148,7 +148,7 @@ export function PropertyInspector() {
 
   if (selectedComponentIds.length === 0 || !primaryComponentId) {
     return (
-      <aside className="property-inspector" aria-label="Property Inspector">
+      <aside id="property-inspector" className="property-inspector" aria-label="Property Inspector" tabIndex={-1}>
         <div className="side-panel-header">
           <p className="info-label">Selection</p>
           <h2>Property Inspector</h2>
@@ -169,7 +169,9 @@ export function PropertyInspector() {
     return (
       <aside
         className="property-inspector"
+        id="property-inspector"
         aria-label="Property Inspector"
+        tabIndex={-1}
         data-inspector-multi-count={selectedComponents.length}
       >
         <div className="side-panel-header inspector-title-row">
@@ -312,7 +314,9 @@ export function PropertyInspector() {
   return (
     <aside
       className="property-inspector"
+      id="property-inspector"
       aria-label="Property Inspector"
+      tabIndex={-1}
       data-inspector-component-id={component.id}
       data-inspector-locked={locked}
     >

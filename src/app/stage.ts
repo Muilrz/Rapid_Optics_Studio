@@ -1,4 +1,4 @@
 export const CURRENT_PHASE =
-  'Phase 7 — Project & I/O' as const
+  'Phase 8 Completed · V1' as const
 
-export const PRODUCT_STATUS = 'V1 under development' as const
+export const PRODUCT_STATUS = 'V1 complete' as const

@@ -1,4 +1,12 @@
 :root {
+  --surface: #10171e;
+  --control: #192630;
+  --line: #364956;
+  --muted: #a1b2bf;
+  --accent: #93d9ed;
+  --warning: #ffc976;
+  --error: #ff9c9c;
+  color-scheme: dark;
   color: #e8edf2;
   background: #0a0e12;
   font-family:
@@ -32,7 +40,7 @@ button {
 
 .studio-shell {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   height: 100dvh;
   background:
     radial-gradient(circle at 75% -20%, rgb(43 72 86 / 22%), transparent 38rem),
@@ -184,13 +192,72 @@ button {
 
 .studio-center-stack {
   display: grid;
-  grid-template-rows: minmax(360px, 1.45fr) max-content minmax(300px, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   grid-auto-rows: max-content;
   gap: 12px;
   min-width: 0;
   min-height: 0;
   overflow: auto;
 }
+
+.studio-workspace--full { grid-template-columns: minmax(0, 1fr); }
+.studio-workspace--full .studio-center-stack { display: block; }
+.bench-shortcuts { display: none; }
+.workspace-navigation {
+  display: flex;
+  gap: 6px;
+  padding: 6px 12px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.workspace-navigation button, .project-controls button, .project-controls input,
+.project-controls select, .spectrum-panel button, .spectrum-panel select,
+.diagnostic-findings button {
+  min-height: 34px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: inherit;
+  background: var(--control);
+  font: inherit;
+}
+.workspace-navigation button { flex: 0 0 auto; }
+.workspace-navigation button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #16313c;
+}
+button:not(:disabled), summary { cursor: pointer; }
+button:disabled { opacity: .56; }
+button:not(:disabled):hover, summary:hover { border-color: var(--accent); color: var(--accent); }
+:where(button, input, select, summary, a):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.project-controls { padding: 5px 12px 8px; max-height: 34dvh; overflow: auto; background: var(--surface); }
+.project-controls .analysis-controls { margin: 0 0 5px; gap: 5px 8px; }
+.project-controls input[aria-label="Project name"] { width: min(17rem, 65vw); }
+.project-dirty, .project-tools > summary, .diagnostic-summary { color: var(--muted); font-size: .9rem; }
+.project-dirty[data-dirty="true"] { color: var(--warning); }
+.project-tools > summary { padding: 4px 0; }
+.diagnostics-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.engineering-telemetry { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); gap: 1px; background: var(--line); margin: 0; }
+.engineering-telemetry > div { padding: 14px; background: var(--surface); }
+.engineering-telemetry dt, .diagnostic-findings small { color: var(--muted); }
+.engineering-telemetry dd { margin: 6px 0; font-size: 1.18rem; font-weight: 650; }
+.engineering-telemetry small { display: block; color: var(--muted); line-height: 1.4; }
+[data-path-state="SIGNAL"] { color: #91e3ab; }
+[data-path-state="LEAK"] { color: var(--warning); }
+[data-path-state="NO PATH"] { color: var(--error); }
+.engineering-status { display: flex; gap: 10px 20px; flex-wrap: wrap; padding: 7px 12px; color: var(--muted); background: var(--surface); border-top: 1px solid var(--line); font-size: .78rem; }
+.engineering-status strong { margin-inline-start: 4px; }
+.diagnostic-findings { list-style: none; padding: 0 14px; }
+.diagnostic-findings li { padding: 12px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.diagnostic-findings p { margin: 6px 0; }
+.diagnostic-findings small { display: block; margin: 5px 0; }
+.diagnostic-findings strong { margin-right: 8px; }
+.diagnostic-findings [data-severity="ERROR"] { color: var(--error); }
+.diagnostic-findings [data-severity="WARNING"] { color: var(--warning); }
+.diagnostic-findings [data-severity="INFO"] { color: var(--accent); }
+.diagnostic-summary { margin: 14px; }
 
 .component-library,
 .property-inspector {
@@ -1384,4 +1451,22 @@ button {
   color: #ffb4a9;
   max-height: 10rem;
   overflow: auto;
+}
+
+@media (max-width: 900px) {
+  .studio-workspace .studio-center-stack { grid-row: 1; }
+  .studio-toolbar { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .toolbar-actions { flex-wrap: wrap; }
+  .studio-center-stack .bench-viewport { min-height: 340px; }
+  .bench-shortcuts { display: flex; gap: 12px; }
+  .bench-shortcuts a { color: var(--accent); font-size: .85rem; }
+}
+@media (max-width: 620px) {
+  .project-controls { padding: 6px 8px; max-height: 29dvh; }
+  .project-controls .analysis-controls { gap: 4px; }
+  .project-controls button { padding-inline: 6px; font-size: .83rem; }
+  .studio-toolbar { padding: 6px 8px; }
+  .workspace-navigation { padding-inline: 8px; flex-wrap: wrap; }
+  .workspace-navigation button { font-size: .82rem; padding-inline: 7px; }
+  .engineering-status { gap: 4px 12px; padding: 5px 8px; }
 }

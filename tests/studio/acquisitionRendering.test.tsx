@@ -12,7 +12,7 @@ describe('Phase 4E acquisition rendering', () => {
     expect(markup).toContain('Single (N=1)')
     expect(markup).toContain('value="20"')
     expect(markup).toContain('Acquire')
-    expect(markup).toContain('Edit in Spectrum parameters above')
+    expect(markup).toContain('Edit in the Spectrum workspace')
     expect(markup).toContain('Live Preview is not saved as a Run')
   })
 

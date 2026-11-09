@@ -105,6 +105,7 @@ export interface StudioViewState {
 
 export interface StudioDerivedState {
   readonly trace: TraceResult
+  readonly traceFailure?: string
   readonly ramanContexts: ReturnType<
     typeof deriveStudioSimulation
   >['ramanContexts']
@@ -478,6 +479,7 @@ export const createStudioStore = (
       const derived = Object.freeze({
         ...deriveStudioSimulation({ ...authoritative, sourceRevision: revision }), sceneRevision: revision,
       })
+      if (derived.traceFailure) throw new Error('Project trace failed: ' + derived.traceFailure)
       const editor = Object.freeze({ ...EMPTY_STUDIO_SELECTION, clipboard: null, lockedComponentIds: Object.freeze([]),
         snapEnabled: current.editor.snapEnabled, sceneReplacementRevision: current.editor.sceneReplacementRevision + 1 })
       return { authoritative, derived, editor, history: EMPTY_HISTORY }
