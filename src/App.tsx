@@ -1,3 +1,4 @@
+import { PresentationSection } from './features/presentation/PresentationSection'
 import { CURRENT_PHASE } from './app/stage'
 import { ComponentLibrary } from './features/studio/ComponentLibrary'
 import { OpticalBench } from './features/studio/OpticalBench'
@@ -138,6 +139,7 @@ function App() {
               <span>World coordinates · mm</span>
             </footer>
           </div>
+          <PresentationSection />
           <SpectrumPreview />
           <AcquisitionPanel />
           <SpectrumAnalysis />

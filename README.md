@@ -4,7 +4,7 @@ Rapid Optics Studio is a Raman-first scientific engineering studio for building,
 
 ## Status
 
-V1 under development. **Phase 5 — Spectrum Analysis Completed.** Analyze a completed Run with replayable baseline correction, smoothing and normalization, inspect peaks, and overlay spectra from different Runs. Analysis is session-scoped. See [current status](CURRENT_PHASE.md) and the [Phase 5 acceptance record](PHASE5_PLAN.md).
+V1 under development. **Phase 6 — 3D Presentation Completed.** Open the 3D Viewer below the optical bench to inspect the current 2D design, traced paths and focus. See [current status](CURRENT_PHASE.md) and the [Phase 6 plan and acceptance record](PHASE6_PLAN.md).
 
 Phase 3 remains an explicitly **Simplified / First-order** engineering model. Material intensities are relative and phenomenological; focus uses a provisional millimetre-based defocus model; optical and spectrometer throughput are simplified; QE follows the documented Gaussian approximation; and preview noise uses a seeded Gaussian approximation rather than an exact Poisson detector model. The preview is not an acquisition run or processed spectrum.
 
@@ -52,7 +52,7 @@ npm run lint
 ## Directory overview
 
 - `src/app`: application bootstrap and app-level concerns.
-- `src/features`: product-facing feature modules; currently contains the 2D Studio camera and interactive bench layers plus the completed Phase 3 Spectrum Preview.
+- `src/features`: product-facing feature modules, including the 2D Studio, 3D Viewer, Acquisition and Spectrum Analysis.
 - `src/core`: pure TypeScript scientific computation modules; contains the hardened Phase 1 generic optical core, the separate Raman material/spectrum/focus/trace-coupling core, and the minimal Virtual Spectrometer / deterministic CCD / seeded single-preview exposure core.
 - `src/project`: product defaults and component definitions/factories; currently owns the formal default Raman scene and ten-type Studio creation registry.
 - `src/store`: Zustand application state composition with separate authoritative, editor clipboard/selection/lock, bounded design history, view, and derived simulation boundaries. Trace, Raman context, expected spectra, and preview exposure remain recomputable derived results.
@@ -71,7 +71,8 @@ npm run lint
 - [`PHASE0_PLAN.md`](PHASE0_PLAN.md) and [`PHASE1_PLAN.md`](PHASE1_PLAN.md) preserve the completed early-phase execution plans extracted from the former mixed-role roadmap.
 - Phase 2 has no independently retained execution-plan document; the repository does not reconstruct one retrospectively from the implementation.
 - [`PHASE3_PLAN.md`](PHASE3_PLAN.md) preserves the completed Phase 3 execution contract and acceptance record.
-- [`PHASE4_PLAN.md`](PHASE4_PLAN.md) is the draft Acquisition execution plan awaiting review.
+- [`PHASE4_PLAN.md`](PHASE4_PLAN.md) and [`PHASE5_PLAN.md`](PHASE5_PLAN.md) preserve the Acquisition and Spectrum Analysis acceptance records.
+- [`PHASE6_PLAN.md`](PHASE6_PLAN.md) owns the 3D Presentation execution contract and browser acceptance record.
 - [`CURRENT_PHASE.md`](CURRENT_PHASE.md) owns current development status and review boundaries.
 - [`AGENTS.md`](AGENTS.md) defines agent execution rules and document responsibilities.
 - [`reference/raman_sandbox.html`](reference/raman_sandbox.html) is a read-only behavior reference and is not part of the production bundle.
