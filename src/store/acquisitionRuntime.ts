@@ -156,6 +156,13 @@ export const createAcquisitionController = (
         return false
       }
     },
+    discard: () => {
+      const active = job
+      job = undefined
+      try { active?.unschedule?.() } catch {
+        // The cleared job token also prevents an uncancelled callback from writing.
+      }
+    },
     cancelState,
     cancel: (reason: string) => {
       const state = cancelState(reason)

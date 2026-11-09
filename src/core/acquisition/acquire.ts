@@ -33,16 +33,22 @@ export const simulateAcquisitionExposure = (input: AcquisitionInput, index: numb
   })
 }
 
+/** Mean of nonempty, aligned exposure arrays. Callers validate their axes and lengths. */
+export function meanExposureCounts(exposures: readonly AcquisitionExposure[]) {
+  const mean = [...exposures[0]!.counts]
+  for (let i = 1; i < exposures.length; i += 1) {
+    exposures[i]!.counts.forEach((value, j) => { mean[j] += (value - mean[j]!) / (i + 1) })
+  }
+  return mean
+}
+
 /** Stable mean avoids overflowing the sum even near the finite detector ceiling. */
 export const averageAcquisitionExposures = (input: AcquisitionInput, exposures: readonly AcquisitionExposure[]) => {
   const checked = AcquisitionRuntimeSchema.parse({ status: 'running', token: 'aggregation', input, exposures })
   if (checked.status !== 'running' || exposures.length !== input.request.number_of_exposures) {
     throw new RangeError('Raw mean requires exactly N accepted exposures.')
   }
-  const mean = [...checked.exposures[0]!.counts]
-  for (let i = 1; i < checked.exposures.length; i += 1) {
-    checked.exposures[i]!.counts.forEach((value, j) => { mean[j] += (value - mean[j]!) / (i + 1) })
-  }
+  const mean = meanExposureCounts(checked.exposures)
   return RawAcquiredSpectrumSchema.parse({
     kind: 'raw-acquired-spectrum', contract_version: ACQUISITION_CONTRACT_VERSION,
     run_id: input.id, axis: input.expected_spectrum.axis, unit: 'counts/bin', counts: mean,

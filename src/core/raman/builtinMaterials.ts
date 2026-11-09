@@ -163,3 +163,7 @@ export const findBuiltInRamanMaterial = (
 export const resolveBuiltInRamanMaterial = (
   materialId: string,
 ): RamanMaterial => BUILT_IN_RAMAN_MATERIAL_REGISTRY.resolve(materialId)
+
+/** Project materials extend the built-in reference registry without mutating it. */
+export const createProjectRamanMaterialRegistry = (custom: readonly RamanMaterial[] = []) =>
+  custom.length ? createRamanMaterialRegistry([...BUILT_IN_RAMAN_MATERIALS, ...custom]) : BUILT_IN_RAMAN_MATERIAL_REGISTRY

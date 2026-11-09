@@ -1,7 +1,7 @@
 import { traceOpticalScene, type OpticalScene, type SimulationConfiguration } from '../optics'
 import {
-  BUILT_IN_RAMAN_MATERIAL_DATASET, BUILT_IN_RAMAN_MATERIAL_REGISTRY,
-  RAMAN_SPECTRUM_MODEL_VERSION, buildRamanOpticalContexts, createAutoSpectrumAxis,
+  BUILT_IN_RAMAN_MATERIAL_DATASET, createProjectRamanMaterialRegistry,
+  type RamanMaterial, RAMAN_SPECTRUM_MODEL_VERSION, buildRamanOpticalContexts, createAutoSpectrumAxis,
 } from '../raman'
 import { ACQUISITION_CONTRACT_VERSION, AcquisitionInputSchema, AcquisitionRequestSchema, type AcquisitionRequest } from './acquisitionContracts'
 import { CCD_NOISE_MODEL_VERSION, type VirtualCcdConfiguration } from './contracts'
@@ -13,6 +13,7 @@ export interface AcquisitionDesign {
   readonly simulationConfiguration: SimulationConfiguration
   readonly detectorConfiguration: VirtualCcdConfiguration
   readonly revision: number
+  readonly materials?: readonly RamanMaterial[]
 }
 
 /** Resolves a unique actual excitation chain, or a unique real dark-only setup. */
@@ -21,7 +22,8 @@ export const buildAcquisitionInput = (design: AcquisitionDesign, request: Acquis
   const validatedRequest = AcquisitionRequestSchema.parse(request)
   if (design.detectorConfiguration.integration_time_s <= 0) throw new RangeError('Integration must be positive for acquisition.')
   const trace = traceOpticalScene(design.scene, design.simulationConfiguration)
-  const contexts = buildRamanOpticalContexts(design.scene, trace).filter((context) =>
+  const materialRegistry = createProjectRamanMaterialRegistry(design.materials)
+  const contexts = buildRamanOpticalContexts(design.scene, trace, { materialRegistry }).filter((context) =>
     design.scene.components.some((c) => c.id === context.sample_component_id && c.enabled))
   const excited = contexts.filter((c) => c.excitation_reached_sample)
   const candidates = excited.length > 0 ? excited : contexts
@@ -37,7 +39,10 @@ export const buildAcquisitionInput = (design: AcquisitionDesign, request: Acquis
   const laser = lasers[0]!
   const component = spectrometers[0]!
   if (laser.type !== 'laser' || component.type !== 'spectrometer') throw new Error('Invalid instrument target types.')
-  const material = BUILT_IN_RAMAN_MATERIAL_REGISTRY.resolve(context.material_id)
+  const custom = design.materials?.find(({ id }) => id === context.material_id)
+  const material = materialRegistry.resolve(context.material_id)
+  const dataset = custom ? { model_version: 'custom-raman-material-v1',
+    provenance: 'User-defined Raman reference material', materials: [custom] } : BUILT_IN_RAMAN_MATERIAL_DATASET
   const spectrometer = createVirtualSpectrometerConfiguration(component)
   const expected = calculateExpectedCcdSpectrumFromRamanContext({
     context, material, axis: createAutoSpectrumAxis(material),
@@ -49,7 +54,7 @@ export const buildAcquisitionInput = (design: AcquisitionDesign, request: Acquis
     rng: createAcquisitionRngProvenance(seed), expected_spectrum: expected,
     instrument_snapshot: {
       optical_scene: design.scene, simulation_settings: design.simulationConfiguration,
-      material, material_dataset: BUILT_IN_RAMAN_MATERIAL_DATASET, spectrometer,
+      material, material_dataset: dataset, spectrometer,
       detector: design.detectorConfiguration, context, configuration_revision: design.revision,
       target: { laser_component_id: laser.id, sample_component_id: context.sample_component_id,
         spectrometer_component_id: component.id, resolution_version: 'unique-traceable-chain-v1' },

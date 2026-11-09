@@ -1,23 +1,13 @@
+import { SpectrumExport } from '../project/SpectrumExport'
+import { spectrumFile } from '../../project/dataFiles'
+import type { RapidOpticsProject } from '../../project/projectSchema'
+import type { PeakEdits, SpectrumAnalysisState } from '../../project/projectSchema'
 import { useMemo, useState } from 'react'
-import { detectPeaks, manualPeak, referencePeaks, type PeakAssignment } from '../../core/analysis/peaks'
-import { createPipeline, replayPipeline, runSpectra, type ProcessingPipeline, type ProcessingStep } from '../../core/analysis/processing'
+import { detectPeaks, manualPeak, referencePeaks } from '../../core/analysis/peaks'
+import { createPipeline, replayPipeline, runSpectra, type ProcessingStep } from '../../core/analysis/processing'
 import type { CompletedAcquisitionRun } from '../../core/acquisition'
 import { useStudioStore } from '../../store/studioStore'
 import { AnalysisViewer } from './AnalysisViewer'
-
-interface PeakEdits {
-  readonly threshold: number
-  readonly detecting: boolean
-  readonly manual: readonly number[]
-  readonly ignored: readonly number[]
-  readonly assignments: Readonly<Record<string, PeakAssignment>>
-}
-
-interface SpectrumAnalysisState {
-  readonly pipelines: ReadonlyMap<string, ProcessingPipeline>
-  readonly visible: ReadonlyMap<string, boolean>
-  readonly peakEdits: ReadonlyMap<string, PeakEdits>
-}
 
 const emptyEdits: PeakEdits = { threshold: 10, detecting: false, manual: [], ignored: [], assignments: {} }
 const stepNames = { baseline: 'Baseline Correction', smoothing: 'Smoothing', normalize: 'Normalize' }
@@ -40,11 +30,16 @@ function RadiusInput({ step, update }: {
     }} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }} /></label>
 }
 
-function RunAnalysis({ run, runs, state, setState }: {
+const librarySeries = ({ id, spectrum }: RapidOpticsProject['spectrumLibrary'][number]) => ({
+  ...spectrum, id: 'library/' + id, runId: spectrum.runId ?? spectrum.source, saturated: spectrum.saturated === true,
+})
+
+function RunAnalysis({ run, runs, state, setState, library }: {
   run: CompletedAcquisitionRun
   runs: readonly CompletedAcquisitionRun[]
   state: SpectrumAnalysisState
-  setState: React.Dispatch<React.SetStateAction<SpectrumAnalysisState>>
+  library: RapidOpticsProject['spectrumLibrary']
+  setState: (update: (state: SpectrumAnalysisState) => SpectrumAnalysisState) => void
 }) {
   const runId = run.input.id
   const pipeline = state.pipelines.get(runId)
@@ -57,7 +52,10 @@ function RunAnalysis({ run, runs, state, setState }: {
   }), [runs, state.pipelines])
   const active = spectra.find(({ raw }) => raw.runId === runId)!
   const target = active.processed ?? active.raw
-  const available = spectra.flatMap(({ raw, expected, processed }) => [expected, raw, ...(processed ? [processed] : [])])
+  const available = [
+    ...spectra.flatMap(({ raw, expected, processed }) => [expected, raw, ...(processed ? [processed] : [])]),
+    ...library.map(librarySeries),
+  ]
   const visible = available.filter((entry) => state.visible.get(entry.id) ??
     (entry.runId === runId && entry.id === target.id))
   const edits = state.peakEdits.get(target.id) ?? emptyEdits
@@ -91,10 +89,17 @@ function RunAnalysis({ run, runs, state, setState }: {
     steps.map((item) => item.id === step.id ? step : item))
 
   return <>
+    <SpectrumExport key={runId} choices={[
+      { label: 'Expected · ' + runId, load: () => spectrumFile(active.expected, 'Frozen Run Expected CCD') },
+      { label: 'Raw Acquisition · ' + runId, load: () => spectrumFile(active.raw, 'Frozen Run Raw Mean') },
+      ...(active.processed ? [{ label: 'Processed · ' + runId, load: () =>
+        spectrumFile(active.processed!, 'Pipeline replay from frozen Run Raw Mean', active.processed!.pipeline) }] : []),
+      ...library.map(({ id, spectrum }) => ({ label: 'Imported ' + spectrum.kind + ' · ' + id, load: () => spectrum })),
+    ]} />
     <h3>Processing Pipeline</h3>
     <div className="analysis-controls">
       {(Object.keys(stepNames) as ProcessingStep['kind'][]).map((kind) =>
-        <button key={kind} onClick={() => updateSteps((steps) => {
+        <button key={kind} disabled={(pipeline?.steps.length ?? 0) >= 64} onClick={() => updateSteps((steps) => {
           const id = Math.max(0, ...steps.map((step) => step.id)) + 1
           return [...steps, defaultStep(kind, id)]
         })}>Add {stepNames[kind]}</button>)}
@@ -187,14 +192,14 @@ function RunAnalysis({ run, runs, state, setState }: {
 
 export function SpectrumAnalysis() {
   const runs = useStudioStore((state) => state.acquisition.completedRuns)
+  const library = useStudioStore((state) => state.spectrumLibrary)
   const [selected, setSelected] = useState('')
-  const [state, setState] = useState<SpectrumAnalysisState>(() => ({
-    pipelines: new Map(), visible: new Map(), peakEdits: new Map(),
-  }))
+  const state = useStudioStore((state) => state.analysis)
+  const setState = useStudioStore((state) => state.updateAnalysis)
   const run = runs.find((entry) => entry.input.id === selected) ?? runs.at(-1)
   return <section className="spectrum-panel analysis-panel" aria-label="Spectrum Analysis">
     <div className="spectrum-panel-heading"><div>
-      <p className="panel-kicker">Completed runs · session analysis</p><h2>Spectrum Analysis</h2>
+      <p className="panel-kicker">Completed runs · project analysis</p><h2>Spectrum Analysis</h2>
     </div></div>
     {run ? <>
       <label>Analysis Run <select value={run.input.id} onChange={(event) => setSelected(event.target.value)}>
@@ -202,7 +207,31 @@ export function SpectrumAnalysis() {
           {entry.input.id} · {entry.input.instrument_snapshot.material.name} · {entry.completed_at}
         </option>)}
       </select></label>
-      <RunAnalysis key={run.input.id} run={run} runs={runs} state={state} setState={setState} />
-    </> : <p>Complete an acquisition to analyze its Raw Mean.</p>}
+      <RunAnalysis key={run.input.id} run={run} runs={runs} state={state} setState={setState} library={library} />
+    </> : library.length ? <LibraryOverlay library={library} state={state} setState={setState} /> :
+      <p>Complete an acquisition to analyze its Raw Mean.</p>}
   </section>
+}
+
+function LibraryOverlay({ library, state, setState }: {
+  library: RapidOpticsProject['spectrumLibrary']
+  state: SpectrumAnalysisState
+  setState: (update: (state: SpectrumAnalysisState) => SpectrumAnalysisState) => void
+}) {
+  const spectra = library.map(librarySeries)
+  return <>
+    <SpectrumExport choices={library.map(({ id, spectrum }) => ({
+      label: 'Imported ' + spectrum.kind + ' · ' + id, load: () => spectrum,
+    }))} />
+    <div className="analysis-controls" aria-label="Spectrum Overlay">
+      {spectra.map((spectrum) => <label key={spectrum.id}>
+        <input type="checkbox" checked={state.visible.get(spectrum.id) ?? false} onChange={(event) => {
+          const checked = event.target.checked
+          setState((current) => ({ ...current, visible: new Map(current.visible).set(spectrum.id, checked) }))
+        }} /> {spectrum.kind} · {spectrum.runId}
+      </label>)}
+    </div>
+    <AnalysisViewer series={spectra.filter(({ id }) => state.visible.get(id))} target={spectra[0]!}
+      peaks={[]} marking={false} onMark={() => undefined} />
+  </>
 }

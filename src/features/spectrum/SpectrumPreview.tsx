@@ -1,3 +1,5 @@
+import { SpectrumExport } from '../project/SpectrumExport'
+import { spectrumFile } from '../../project/dataFiles'
 import { useState, type KeyboardEvent } from 'react'
 import type { VirtualCcdConfiguration } from '../../core/acquisition'
 import { BUILT_IN_RAMAN_MATERIALS } from '../../core/raman'
@@ -212,7 +214,9 @@ export function SpectrumPreview() {
         : true),
   )
   const laser = laserCandidate?.type === 'laser' ? laserCandidate : undefined
-  const material = BUILT_IN_RAMAN_MATERIALS.find(
+  const customMaterials = useStudioStore((state) => state.authoritative.materials)
+  const materials = [...BUILT_IN_RAMAN_MATERIALS, ...customMaterials]
+  const material = materials.find(
     ({ id }) => id === sample?.parameters.material_id,
   )
   const updateDetectorNumber = (
@@ -240,6 +244,12 @@ export function SpectrumPreview() {
         <div className="spectrum-plot-region">
           {simulation.kind === 'ready' ? (
             <>
+              <SpectrumExport choices={[{ label: 'Expected · current design', load: () => spectrumFile({
+                id: 'current/expected', runId: '', kind: 'expected', unit: 'counts/bin',
+                axis: simulation.expectedCcdSpectrum.axis.values_cm_1,
+                values: simulation.expectedCcdSpectrum.expected_counts,
+                saturated: simulation.expectedCcdSpectrum.saturated_bin_count > 0,
+              }, 'Current design Expected CCD') }]} />
               <SpectrumChart
                 shifts={simulation.expectedCcdSpectrum.axis.values_cm_1}
                 expected={simulation.expectedCcdSpectrum.expected_counts}
@@ -277,7 +287,7 @@ export function SpectrumPreview() {
               }}
             >
               {!material && <option value="">Unavailable</option>}
-              {BUILT_IN_RAMAN_MATERIALS.map((option) => (
+              {materials.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}
                 </option>

@@ -32,7 +32,7 @@ button {
 
 .studio-shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   height: 100dvh;
   background:
     radial-gradient(circle at 75% -20%, rgb(43 72 86 / 22%), transparent 38rem),
@@ -1363,3 +1363,25 @@ button {
 .presentation-raman { color: #ffc457; }
 .presentation-rayleigh { color: #f6f6ff; }
 .presentation-probe { color: #8cbbde; }
+
+.project-controls {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #344255;
+  overflow-wrap: anywhere;
+}
+
+.project-controls .analysis-controls {
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.project-options {
+  margin: 0.5rem 0;
+}
+
+.project-error {
+  white-space: pre-wrap;
+  color: #ffb4a9;
+  max-height: 10rem;
+  overflow: auto;
+}

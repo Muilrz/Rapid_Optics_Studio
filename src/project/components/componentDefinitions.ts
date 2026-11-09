@@ -293,7 +293,8 @@ const highestStudioSequence = (scene: OpticalScene): number =>
 export const createComponentIdAllocator = (
   initialScene: OpticalScene,
 ): ComponentIdAllocator => {
-  let nextSequence = highestStudioSequence(initialScene) + 1
+  const successor = (sequence: number) => sequence === Number.MAX_SAFE_INTEGER ? 1 : sequence + 1
+  let nextSequence = successor(highestStudioSequence(initialScene))
 
   const allocator: ComponentIdAllocator = {
     next: (existingScene) => {
@@ -306,12 +307,12 @@ export const createComponentIdAllocator = (
         id = ComponentIdSchema.parse(
           `component:studio:${nextSequence.toString().padStart(6, '0')}`,
         )
-        nextSequence += 1
+        nextSequence = successor(nextSequence)
       } while (existingIds.has(id))
       return id
     },
     observe: (scene) => {
-      nextSequence = Math.max(nextSequence, highestStudioSequence(scene) + 1)
+      nextSequence = Math.max(nextSequence, successor(highestStudioSequence(scene)))
     },
   }
   return Object.freeze(allocator)

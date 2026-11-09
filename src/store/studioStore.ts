@@ -1,3 +1,8 @@
+import { RamanMaterialSchema, type RamanMaterial } from '../core/raman'
+import { emptyAnalysis, SpectrumFileSchema, validateDesign, type ProjectMetadata, type RapidOpticsProject,
+  type SpectrumAnalysisState } from '../project/projectSchema'
+import { validateProject } from '../project/projectSerialization'
+import { newProjectMetadata } from '../project/studioProject'
 import { useStore } from 'zustand'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 import {
@@ -67,6 +72,7 @@ import { createAcquisitionController, initialAcquisitionState,
 export const STUDIO_HISTORY_LIMIT = 100
 
 export interface StudioAuthoritativeState {
+  readonly materials: readonly RamanMaterial[]
   readonly scene: OpticalScene
   readonly simulationConfiguration: SimulationConfiguration
   readonly detectorConfiguration: VirtualCcdConfiguration
@@ -93,6 +99,7 @@ export interface StudioViewState {
   readonly camera: Camera2D
   readonly viewport: ViewportSize
   readonly viewportMeasured: boolean
+  readonly cameraAdjusted: boolean
   readonly gridVisible: boolean
 }
 
@@ -127,7 +134,19 @@ export interface ComponentTransformUpdate {
   readonly transform: Transform2D
 }
 
+type ProjectDesign = Pick<RapidOpticsProject,
+  'opticalScene' | 'simulationConfiguration' | 'detectorConfiguration' | 'materials'>
+
 export interface StudioState {
+  readonly projectMetadata: ProjectMetadata
+  readonly projectEpoch: number
+  readonly analysis: SpectrumAnalysisState
+  readonly spectrumLibrary: RapidOpticsProject['spectrumLibrary']
+  readonly updateAnalysis: (update: (analysis: SpectrumAnalysisState) => SpectrumAnalysisState) => void
+  readonly addSpectrum: (spectrum: unknown) => void
+  readonly addMaterial: (material: unknown) => void
+  readonly replaceProject: (data: unknown, fitView?: boolean, approve?: () => boolean) => boolean
+  readonly applyOpticalConfiguration: (design: ProjectDesign) => void
   readonly acquisition: StudioAcquisitionState
   readonly startAcquisition: (request: AcquisitionRequest) => boolean
   readonly cancelAcquisition: (reason: string) => void
@@ -257,7 +276,7 @@ export const createStudioStore = (
   const validatedConfiguration = SimulationConfigurationSchema.parse(simulationConfiguration)
   const validatedDetectorConfiguration =
     VirtualCcdConfigurationSchema.parse(detectorConfiguration)
-  const idAllocator = createComponentIdAllocator(scene)
+  let idAllocator = createComponentIdAllocator(scene)
   const initialCamera = fitWorldBounds(getSceneWorldBounds(scene), INITIAL_VIEWPORT)
   const initialSimulation = deriveStudioSimulation({
     scene,
@@ -296,6 +315,7 @@ export const createStudioStore = (
               current.authoritative.simulationConfiguration,
             detectorConfiguration:
               current.authoritative.detectorConfiguration,
+            materials: current.authoritative.materials,
             sourceRevision: revision,
           })
         : current.derived
@@ -338,6 +358,7 @@ export const createStudioStore = (
               current.authoritative.simulationConfiguration,
             detectorConfiguration:
               current.authoritative.detectorConfiguration,
+            materials: current.authoritative.materials,
             sourceRevision: revision,
           }),
           sceneRevision: revision,
@@ -449,12 +470,86 @@ export const createStudioStore = (
       return ids
     }
 
+    const prepareDesign = (current: StudioState, project: ProjectDesign) => {
+      const revision = current.authoritative.revision + 1
+      const authoritative = Object.freeze({ scene: project.opticalScene, revision,
+        simulationConfiguration: project.simulationConfiguration, detectorConfiguration: project.detectorConfiguration,
+        materials: project.materials })
+      const derived = Object.freeze({
+        ...deriveStudioSimulation({ ...authoritative, sourceRevision: revision }), sceneRevision: revision,
+      })
+      const editor = Object.freeze({ ...EMPTY_STUDIO_SELECTION, clipboard: null, lockedComponentIds: Object.freeze([]),
+        snapEnabled: current.editor.snapEnabled, sceneReplacementRevision: current.editor.sceneReplacementRevision + 1 })
+      return { authoritative, derived, editor, history: EMPTY_HISTORY }
+    }
+
     return {
+      projectMetadata: newProjectMetadata(),
+      projectEpoch: 0,
+      analysis: emptyAnalysis(),
+      spectrumLibrary: Object.freeze([]),
+      updateAnalysis: (update) => set((state) => ({ analysis: update(state.analysis) })),
+      addSpectrum: (data) => {
+        const spectrum = SpectrumFileSchema.parse(data)
+        const current = get()
+        if (current.spectrumLibrary.length >= 256) throw new Error('Spectrum library is full.')
+        const id = crypto.randomUUID()
+        const analysis = { ...current.analysis, visible: new Map(current.analysis.visible).set('library/' + id, true) }
+        set({ spectrumLibrary: Object.freeze([...current.spectrumLibrary, Object.freeze({ id, spectrum })]), analysis })
+      },
+      addMaterial: (data) => {
+        const current = get()
+        const material = RamanMaterialSchema.parse(data)
+        const materials = Object.freeze([...current.authoritative.materials, material])
+        if (materials.length > 256) throw new Error('Custom material library is full.')
+        validateDesign({ opticalScene: current.authoritative.scene, materials })
+        set({ authoritative: Object.freeze({ ...current.authoritative, materials }) })
+      },
+      replaceProject: (data, fitView = false, approve = () => true) => {
+        const project = validateProject(data)
+        const current = get()
+        const patch = prepareDesign(current, project)
+        const camera = fitView ? fitWorldBounds(getSceneWorldBounds(project.opticalScene), current.view.viewport) : project.viewState.camera
+        const analysis = {
+          pipelines: new Map(project.analysisState.pipelines.map((pipeline) => [pipeline.runId, pipeline])),
+          peakEdits: new Map(project.analysisState.peakEdits), visible: new Map(project.analysisState.visible),
+        }
+        const allocator = createComponentIdAllocator(project.opticalScene)
+        if (!approve()) return false
+        acquisition.discard()
+        idAllocator = allocator
+        set({
+          ...patch, projectMetadata: project.metadata, projectEpoch: current.projectEpoch + 1,
+          editor: Object.freeze({ ...patch.editor, snapEnabled: project.viewState.snapEnabled }),
+          view: Object.freeze({ ...current.view, camera, gridVisible: project.viewState.gridVisible, viewportMeasured: true, cameraAdjusted: true }),
+          acquisition: Object.freeze({ ...initialAcquisitionState(), completedRuns: project.acquisitionRuns }),
+          analysis, spectrumLibrary: project.spectrumLibrary,
+        })
+        return true
+      },
+      applyOpticalConfiguration: (project) => {
+        const current = get()
+        const materials = new Map(current.authoritative.materials.map((material) => [material.id, material]))
+        for (const material of project.materials) {
+          const existing = materials.get(material.id)
+          if (existing && JSON.stringify(existing) !== JSON.stringify(material)) {
+            throw new Error('Conflicting custom material ID: ' + material.id)
+          }
+          materials.set(material.id, material)
+        }
+        const merged = Object.freeze([...materials.values()])
+        if (merged.length > 256) throw new Error('Custom material library is full.')
+        const patch = prepareDesign(current, { ...project, materials: merged })
+        const camera = fitWorldBounds(getSceneWorldBounds(project.opticalScene), current.view.viewport)
+        idAllocator.observe(project.opticalScene)
+        set({ ...patch, ...acquisitionPatch(current, patch.authoritative), view: { ...current.view, camera, cameraAdjusted: true } })
+      },
       acquisition: initialAcquisitionState(),
       startAcquisition: acquisition.start,
       cancelAcquisition: acquisition.cancel,
       authoritative: Object.freeze({
         scene,
+        materials: Object.freeze([]),
         simulationConfiguration: validatedConfiguration,
         detectorConfiguration: validatedDetectorConfiguration,
         revision: 0,
@@ -470,6 +565,7 @@ export const createStudioStore = (
         camera: initialCamera,
         viewport: INITIAL_VIEWPORT,
         viewportMeasured: false,
+        cameraAdjusted: false,
         gridVisible: true,
       }),
       derived: Object.freeze({
@@ -492,6 +588,7 @@ export const createStudioStore = (
                 current.authoritative.simulationConfiguration,
               detectorConfiguration:
                 current.authoritative.detectorConfiguration,
+              materials: current.authoritative.materials,
               sourceRevision: revision,
             }),
             sceneRevision: revision,
@@ -851,6 +948,7 @@ export const createStudioStore = (
               simulationConfiguration:
                 current.authoritative.simulationConfiguration,
               detectorConfiguration: validated,
+              materials: current.authoritative.materials,
               sourceRevision: revision,
               trace: current.derived.trace,
             }),
@@ -868,7 +966,7 @@ export const createStudioStore = (
           ...acquisitionPatch(current, authoritative), authoritative,
           derived: Object.freeze({ ...deriveStudioSimulation({ scene: authoritative.scene,
             simulationConfiguration: validated, detectorConfiguration: authoritative.detectorConfiguration,
-            sourceRevision: revision }), sceneRevision: revision }),
+            materials: authoritative.materials, sourceRevision: revision }), sceneRevision: revision }),
         })
       },
       setGridVisible: (gridVisible) =>
@@ -888,12 +986,13 @@ export const createStudioStore = (
       },
       panView: (delta_px) =>
         set((state) => ({
-          view: Object.freeze({ ...state.view, camera: panCamera(state.view.camera, delta_px) }),
+          view: Object.freeze({ ...state.view, cameraAdjusted: true, camera: panCamera(state.view.camera, delta_px) }),
         })),
       zoomViewAt: (anchor_px, factor) =>
         set((state) => ({
           view: Object.freeze({
             ...state.view,
+            cameraAdjusted: true,
             camera: zoomCameraAtScreenPoint(state.view.camera, state.view.viewport, anchor_px, factor),
           }),
         })),
@@ -901,6 +1000,7 @@ export const createStudioStore = (
         set((state) => ({
           view: Object.freeze({
             ...state.view,
+            cameraAdjusted: true,
             camera: fitWorldBounds(getSceneWorldBounds(state.authoritative.scene), state.view.viewport),
           }),
         })),

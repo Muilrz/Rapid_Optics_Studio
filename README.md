@@ -4,7 +4,7 @@ Rapid Optics Studio is a Raman-first scientific engineering studio for building,
 
 ## Status
 
-V1 under development. **Phase 6 — 3D Presentation Completed.** Open the 3D Viewer below the optical bench to inspect the current 2D design, traced paths and focus. See [current status](CURRENT_PHASE.md) and the [Phase 6 plan and acceptance record](PHASE6_PLAN.md).
+V1 under development. **Phase 7 — Project & I/O Completed.** Use the Project controls to save and reopen optical designs, completed acquisitions and spectrum analysis. See [current status](CURRENT_PHASE.md) and the [Phase 7 plan and acceptance record](PHASE7_PLAN.md).
 
 Phase 3 remains an explicitly **Simplified / First-order** engineering model. Material intensities are relative and phenomenological; focus uses a provisional millimetre-based defocus model; optical and spectrometer throughput are simplified; QE follows the documented Gaussian approximation; and preview noise uses a seeded Gaussian approximation rather than an exact Poisson detector model. The preview is not an acquisition run or processed spectrum.
 

@@ -100,6 +100,7 @@ const visibleParameterFields = (
   )
 
 export function PropertyInspector() {
+  const materials = useStudioStore((state) => state.authoritative.materials)
   const selectedComponentIds = useStudioStore(
     (state) => state.editor.selectedComponentIds,
   )
@@ -475,7 +476,8 @@ export function PropertyInspector() {
                         : commitParameter(field.key, event.target.value)
                     }
                   >
-                    {field.options.map((option) => (
+                    {(field.key === 'material_id' ? [...field.options,
+                      ...materials.map(({ id, name }) => ({ value: id, label: name }))] : field.options).map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>

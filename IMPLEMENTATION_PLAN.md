@@ -623,7 +623,8 @@ Phase 8 Diagnostics + Hardening
 | 4 | [`PHASE4_PLAN.md`](PHASE4_PLAN.md) | Completed：合法0.1mW场景的1s×20正式F与配置取消G真实UI验收通过；默认饱和Undefined边界保留，详见§4.8 |
 | 5 | [PHASE5_PLAN.md](PHASE5_PLAN.md) | Completed，Scenario H 与浏览器交互验收记录 |
 | 6 | [PHASE6_PLAN.md](PHASE6_PLAN.md) | 3D Presentation 施工契约与 Scenario J 验收记录 |
-| 7～8 | 尚未编写专项计划 | 当前仅由本路线图定义阶段范围与 Exit Gate |
+| 7 | [PHASE7_PLAN.md](PHASE7_PLAN.md) | Completed，Project & I/O 施工契约与 Scenario I 验收记录 |
+| 8 | 尚未编写专项计划 | 当前由本路线图定义阶段范围与 Exit Gate |
 
 专项计划细化本路线图，不改变 PRD 产品需求。计划状态与开发进度以 `CURRENT_PHASE.md` 为入口；不得把“计划已编写”解释成“实现已获授权”。
 

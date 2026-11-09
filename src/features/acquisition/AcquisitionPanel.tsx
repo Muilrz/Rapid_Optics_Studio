@@ -67,7 +67,7 @@ export function AcquisitionRunInspector({ run }: { readonly run: AcquisitionRun 
           <dt>Saturation evidence</dt><dd>{expected.saturated_bin_count} expected saturated bins; {run.exposures.filter((f) => f.clipped_high.some(Boolean)).length} exposures with high clipping. Mean alone does not establish absence of saturation.</dd>
         </>}
       </dl>
-      <p>Simplified / First-order model. Frozen data stays separate from live Preview. Records remain in memory for this session; reload clears them.</p>
+      <p>Simplified / First-order model. Frozen data stays separate from live Preview. Save the project to retain Completed Runs and their original detector data.</p>
     </details>
   </article>
 }

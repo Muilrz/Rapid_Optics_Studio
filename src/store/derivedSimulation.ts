@@ -14,9 +14,10 @@ import {
   type TraceResult,
 } from '../core/optics'
 import {
-  BUILT_IN_RAMAN_MATERIAL_REGISTRY,
+  createProjectRamanMaterialRegistry,
   buildRamanOpticalContexts,
   createAutoSpectrumAxis,
+  type RamanMaterial,
   type ExpectedSpectrum,
   type RamanOpticalContext,
 } from '../core/raman'
@@ -53,6 +54,7 @@ export interface DeriveStudioSimulationInput {
   readonly simulationConfiguration: SimulationConfiguration
   readonly detectorConfiguration: VirtualCcdConfiguration
   readonly sourceRevision: number
+  readonly materials?: readonly RamanMaterial[]
   readonly trace?: TraceResult
 }
 
@@ -105,11 +107,10 @@ export const deriveStudioSimulation = (
     })
   }
 
+  const materialRegistry = createProjectRamanMaterialRegistry(input.materials)
   const unknownSample = samples.find(
     (sample) =>
-      BUILT_IN_RAMAN_MATERIAL_REGISTRY.find(
-        sample.parameters.material_id,
-      ) === undefined,
+      materialRegistry.find(sample.parameters.material_id) === undefined,
   )
   if (unknownSample) {
     return Object.freeze({
@@ -122,7 +123,7 @@ export const deriveStudioSimulation = (
   }
 
   try {
-    const ramanContexts = buildRamanOpticalContexts(input.scene, trace)
+    const ramanContexts = buildRamanOpticalContexts(input.scene, trace, { materialRegistry })
     const context = selectPrimaryContext(ramanContexts)
     if (!context) {
       return Object.freeze({
@@ -132,9 +133,7 @@ export const deriveStudioSimulation = (
       })
     }
 
-    const material = BUILT_IN_RAMAN_MATERIAL_REGISTRY.resolve(
-      context.material_id,
-    )
+    const material = materialRegistry.resolve(context.material_id)
     const lineageSpectrometerId =
       context.raman_return.spectrometer_component_ids[0]
     const spectrometer = input.scene.components.find(

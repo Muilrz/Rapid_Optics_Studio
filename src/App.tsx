@@ -1,3 +1,4 @@
+import { ProjectControls } from './features/project/ProjectControls'
 import { PresentationSection } from './features/presentation/PresentationSection'
 import { CURRENT_PHASE } from './app/stage'
 import { ComponentLibrary } from './features/studio/ComponentLibrary'
@@ -9,6 +10,7 @@ import { AcquisitionPanel } from './features/acquisition/AcquisitionPanel'
 import { useStudioStore } from './store/studioStore'
 
 function App() {
+  const epoch = useStudioStore((state) => state.projectEpoch)
   const scene = useStudioStore((state) => state.authoritative.scene)
   const trace = useStudioStore((state) => state.derived.trace)
   const spectrum = useStudioStore((state) => state.derived.spectrum)
@@ -109,7 +111,8 @@ function App() {
         </div>
       </header>
 
-      <section className="studio-workspace" aria-label="2D Studio">
+      <ProjectControls />
+      <section key={epoch} className="studio-workspace" aria-label="2D Studio">
         <ComponentLibrary />
         <div className="studio-center-stack">
           <div className="bench-panel">
