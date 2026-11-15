@@ -46,6 +46,7 @@ describe('Phase 6 optical presentation', () => {
       const component = createStudioComponent(definition.type, ComponentIdSchema.parse('test:' + definition.type), { x: 0, y: 0 })
       const { group, marker } = buildComponent(component)
       expect(group.getObjectByName(definition.type)?.children.length).toBeGreaterThan(0)
+      expect(group.getObjectByName(definition.type)?.children.every((mesh) => mesh instanceof Mesh)).toBe(true)
       expect(group.children.length).toBeGreaterThan(2)
       expect(marker.visible).toBe(false)
       disposeObject(group)
