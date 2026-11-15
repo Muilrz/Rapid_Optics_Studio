@@ -55,6 +55,24 @@ describe('Studio bench rendering', () => {
     ])
   })
 
+  it('uses detailed vector glyphs without changing the original component hit areas', () => {
+    const markup = renderToStaticMarkup(
+      <svg>
+        <ComponentLayer
+          components={DEFAULT_RAMAN_SCENE.components}
+          camera={camera}
+          viewport={viewport}
+        />
+      </svg>,
+    )
+    expect(markup).toContain('glyph-metal')
+    expect(markup).toContain('glyph-glass')
+    expect(markup).toContain('glyph-highlight')
+    expect(count(markup, /data-component-hit-target=/g)).toBe(
+      DEFAULT_RAMAN_SCENE.components.length,
+    )
+  })
+
   it('renders stable component identity and a view-only disabled state', () => {
     const laser = DEFAULT_RAMAN_SCENE.components.find(
       (component) => component.type === 'laser',

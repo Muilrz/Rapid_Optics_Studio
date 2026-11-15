@@ -22,15 +22,17 @@ export function mountViewer(host: HTMLDivElement, report: (status: ViewerStatus 
 
   const renderer = new WebGLRenderer({ canvas, context })
   const scene = new Scene()
-  scene.background = new Color(0x0a1017)
+  scene.background = new Color(0x111a26)
   const camera = new PerspectiveCamera(42)
   const controls = new OrbitControls(camera, canvas)
   controls.maxPolarAngle = Math.PI / 2 - 0.015
   controls.enableDamping = false
   const objects = createSceneObjects()
-  const light = new DirectionalLight(0xfff4e7, 2.4)
+  const light = new DirectionalLight(0xf4f8ff, 2.7)
   light.position.set(180, 400, 220)
-  scene.add(new AmbientLight(0xc6dcff, 1.6), light, objects.root)
+  const fill = new DirectionalLight(0x8db9ec, 0.85)
+  fill.position.set(-260, 180, -150)
+  scene.add(new AmbientLight(0xb8cbe3, 1.35), light, fill, objects.root)
 
   const labelLayer = document.createElement('div')
   labelLayer.className = 'presentation-labels'
