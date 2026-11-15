@@ -1,0 +1,260 @@
+/*
+ * Apple Pro-inspired visual skin for Rapid Optics Studio.
+ * Presentation only: no layout, editor commands, simulation, or physics changes.
+ * Imported after index.css so the original app remains an easy rollback.
+ */
+:root {
+  --surface: #1b2029;
+  --control: #292f3a;
+  --line: #3a424e;
+  --muted: #a1acba;
+  --accent: #8fc7ff;
+  --warning: #f8c66b;
+  --error: #ff9d9d;
+  color: #e9edf4;
+  background: #10151c;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.studio-shell {
+  background: radial-gradient(ellipse at 60% -18%, #334b6855, transparent 58%), #10151c;
+}
+
+.studio-toolbar {
+  border-bottom-color: #ffffff1a;
+  background: #252b35ee;
+  box-shadow: 0 7px 28px #00000024, inset 0 1px #ffffff16;
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+}
+
+.brand-mark {
+  border-color: #a6c8ec;
+  background:
+    linear-gradient(90deg, transparent 46%, #a7d2ff 47% 53%, transparent 54%),
+    linear-gradient(0deg, transparent 46%, #a7d2ff 47% 53%, transparent 54%),
+    radial-gradient(circle at 28% 23%, #647e9c, #1a283a 78%);
+  box-shadow: inset 0 0 0 7px #26394e, 0 2px 9px #0004;
+}
+
+.brand-block h1 { color: #f7f9fc; letter-spacing: -0.025em; font-weight: 650; }
+.eyebrow, .panel-kicker, .info-label, .status-key, .toolbar-status-label {
+  color: #a1afc0;
+  letter-spacing: 0.075em;
+}
+
+.toolbar-button,
+.workspace-navigation button,
+.project-controls button,
+.project-controls input,
+.project-controls select,
+.spectrum-panel button,
+.spectrum-panel select,
+.diagnostic-findings button,
+.analysis-panel button,
+.analysis-panel input,
+.analysis-panel select {
+  border-color: #ffffff22;
+  border-radius: 9px;
+  color: #dce6f3;
+  background: linear-gradient(180deg, #39424f 0%, #29313b 100%);
+  box-shadow: inset 0 1px #ffffff11, 0 1px 2px #00000021;
+  transition: background-color 160ms ease, border-color 160ms ease,
+    box-shadow 160ms ease, color 160ms ease;
+}
+
+.toolbar-button:hover:not(:disabled),
+.component-library-item:hover,
+.workspace-navigation button:hover:not(:disabled) {
+  border-color: #a6cbf064;
+  color: #fff;
+  background: #3c4857;
+}
+
+.toolbar-button[aria-pressed="true"],
+.workspace-navigation button[aria-pressed="true"] {
+  border-color: #7db6f076;
+  color: #c6e2ff;
+  background: linear-gradient(180deg, #344e68, #293f55);
+  box-shadow: inset 0 1px #ffffff1b;
+}
+
+:where(button, input, select, summary, a):focus-visible {
+  outline-color: #a7d5ff;
+  outline-offset: 2px;
+}
+
+.workspace-navigation,
+.project-controls,
+.engineering-status {
+  border-color: #ffffff17;
+  background: #1b222c;
+}
+
+.component-library,
+.property-inspector,
+.info-panel,
+.bench-panel,
+.spectrum-panel,
+.diagnostics-panel,
+.presentation-panel {
+  border-color: #ffffff1c;
+  border-radius: 13px;
+  background: #1b222c;
+  box-shadow: 0 10px 28px #00000025, inset 0 1px #ffffff0b;
+}
+
+.side-panel-header,
+.panel-heading,
+.info-panel-header,
+.spectrum-panel-heading {
+  border-bottom-color: #ffffff17;
+  background: linear-gradient(180deg, #28313d, #222a34);
+}
+
+.side-panel-header h2,
+.panel-heading h2,
+.info-panel h2,
+.spectrum-panel-heading h2 { color: #f0f5fc; letter-spacing: -0.015em; }
+
+.component-library-item {
+  border-color: #ffffff16;
+  border-radius: 10px;
+  color: #d5dfe9;
+  background: linear-gradient(125deg, #29323e, #222b36);
+}
+
+.library-add-mark { color: #a9c8e4; }
+.library-note, .inspector-section, .info-row { border-color: #ffffff14; }
+.inspector-section h3 { color: #9aaec3; }
+.inspector-input,
+.spectrum-control-input {
+  border-color: #ffffff29;
+  border-radius: 7px;
+  color: #ecf2f8;
+  background: #131b25;
+}
+.inspector-action-button,
+.selection-tool-grid button {
+  border-color: #ffffff26;
+  border-radius: 7px;
+  color: #d0e4f4;
+  background: #2a3746;
+}
+.inspector-selection-summary li {
+  border-color: #ffffff18;
+  border-radius: 8px;
+  background: #202a35;
+}
+.bench-statusbar {
+  border-top-color: #ffffff17;
+  color: #a6b4c1;
+  background: #222a35;
+}
+.bench-hint {
+  border-color: #ffffff1e;
+  border-radius: 8px;
+  background: #26323add;
+  backdrop-filter: blur(8px);
+}
+.camera-readout { color: #9aaaba; }
+
+.bench-viewport,
+.workspace-background { background: #101720; fill: #101720; }
+.breadboard-plate {
+  fill: #1b2732;
+  stroke: #596b7c;
+}
+.breadboard-hole {
+  fill: #111a23;
+  stroke: #3b4c5d;
+  opacity: .78;
+}
+.workspace-grid-dot { fill: #5c748b; opacity: .48; }
+.breadboard-label {
+  fill: #90a7bb;
+  font-weight: 600;
+  letter-spacing: .085em;
+}
+.trace-excitation { filter: drop-shadow(0 0 2px var(--trace-glow, #84efb88c)); }
+.trace-sample-return-placeholder { filter: drop-shadow(0 0 2px #e4b66577); }
+.component-glyph {
+  fill: #243444;
+  stroke: currentColor;
+  stroke-width: 1.6px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.component-glyph .glyph-metal {
+  fill: #334757;
+  stroke: #a2b6c6;
+}
+.component-glyph .glyph-glass {
+  fill: #77cfff2b;
+  stroke: currentColor;
+}
+.component-glyph .glyph-surface {
+  fill: #d5e7f223;
+  stroke: currentColor;
+}
+.component-glyph .glyph-secondary {
+  fill: none;
+  stroke: currentColor;
+  opacity: .65;
+  stroke-width: 1.15px;
+}
+.component-glyph .glyph-highlight {
+  fill: none;
+  stroke: #f3f8ff;
+  opacity: .86;
+  stroke-width: 1.1px;
+}
+.component-glyph .glyph-opening { fill: #0c141d; stroke: #a8bfd2; }
+.component-glyph .glyph-etched {
+  fill: none;
+  stroke: #e7eff9;
+  stroke-width: .9px;
+  opacity: .62;
+}
+.component-label {
+  fill: #d4e0eb;
+  stroke: #141e28;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .025em;
+}
+.component-selection-ring { fill: #8bc7fa10; stroke: #8ec8ff; }
+.component-marker--primary .component-selection-ring {
+  fill: #91caff15;
+  stroke: #c2e3ff;
+}
+.rotation-guide { stroke: #9dccfb; }
+.rotation-handle { fill: #1c2c3c; stroke: #b4dcff; }
+
+.spectrum-chart-background { fill: #111b26; stroke: #475b6d; }
+.spectrum-grid-line { stroke: #344352; }
+.spectrum-axis-label { fill: #abbacd; }
+.spectrum-expected-path { stroke: #86c9ff; }
+.spectrum-legend-expected { background: #86c9ff; }
+.spectrum-preview-path { stroke: #f2c478; }
+.spectrum-legend-preview { background: #f2c478; }
+.presentation-viewport { background: #111a26; }
+.presentation-labels span {
+  border-color: #bed8ef42;
+  border-radius: 8px;
+  color: #eef5fb;
+  background: #253849d9;
+  box-shadow: 0 3px 12px #0005;
+  backdrop-filter: blur(9px);
+}
+.presentation-controls .toolbar-button[aria-pressed="true"] {
+  border-color: #90c9ff80;
+  color: #e4f3ff;
+}
+.spectrum-model-badge { background: #2e2c27; border-color: #f4c37554; }
+.spectrum-telemetry div, .diagnostic-findings li { border-color: #ffffff16; }
+
+@media (prefers-reduced-motion: reduce) {
+  .toolbar-button, .workspace-navigation button, .component-library-item { transition: none; }
+}
