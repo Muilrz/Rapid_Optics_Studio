@@ -113,7 +113,7 @@ function App() {
             <span className="appearance-symbol" aria-hidden="true">
               {appearance === 'dark' ? '☀' : '☾'}
             </span>
-            {appearance === 'dark' ? 'Light' : 'Dark'}
+            <span className="appearance-label">{appearance === 'dark' ? 'Light' : 'Dark'}</span>
           </button>
         </div>
 
