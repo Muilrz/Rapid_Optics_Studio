@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAppearance } from './app/appearance'
 import { DiagnosticsPanel, EngineeringStatus } from './features/studio/DiagnosticsPanel'
 import { ProjectControls } from './features/project/ProjectControls'
 import { PresentationSection } from './features/presentation/PresentationSection'
@@ -13,6 +14,7 @@ import { useStudioStore } from './store/studioStore'
 
 function App() {
   const [workspace, setWorkspace] = useState('Bench')
+  const { appearance, toggleAppearance } = useAppearance()
   const epoch = useStudioStore((state) => state.projectEpoch)
   const scene = useStudioStore((state) => state.authoritative.scene)
   const trace = useStudioStore((state) => state.derived.trace)
@@ -100,6 +102,18 @@ function App() {
               ⌖
             </span>
             Reset View
+          </button>
+          <button
+            type="button"
+            className="toolbar-button appearance-toggle"
+            onClick={toggleAppearance}
+            aria-label={`Switch to ${appearance === 'dark' ? 'light' : 'dark'} theme`}
+            title={`Switch to ${appearance === 'dark' ? 'Light' : 'Dark'} Mode`}
+          >
+            <span className="appearance-symbol" aria-hidden="true">
+              {appearance === 'dark' ? '☀' : '☾'}
+            </span>
+            {appearance === 'dark' ? 'Light' : 'Dark'}
           </button>
         </div>
 
