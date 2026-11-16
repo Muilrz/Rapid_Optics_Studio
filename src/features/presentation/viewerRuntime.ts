@@ -22,7 +22,8 @@ export function mountViewer(host: HTMLDivElement, report: (status: ViewerStatus 
 
   const renderer = new WebGLRenderer({ canvas, context })
   const scene = new Scene()
-  scene.background = new Color(0x111a26)
+  const background = new Color(0x111a26)
+  scene.background = background
   const camera = new PerspectiveCamera(42)
   const controls = new OrbitControls(camera, canvas)
   controls.maxPolarAngle = Math.PI / 2 - 0.015
@@ -32,7 +33,8 @@ export function mountViewer(host: HTMLDivElement, report: (status: ViewerStatus 
   light.position.set(180, 400, 220)
   const fill = new DirectionalLight(0x8db9ec, 0.85)
   fill.position.set(-260, 180, -150)
-  scene.add(new AmbientLight(0xb8cbe3, 1.35), light, fill, objects.root)
+  const ambient = new AmbientLight(0xb8cbe3, 1.35)
+  scene.add(ambient, light, fill, objects.root)
 
   const labelLayer = document.createElement('div')
   labelLayer.className = 'presentation-labels'
@@ -103,6 +105,20 @@ export function mountViewer(host: HTMLDivElement, report: (status: ViewerStatus 
 
   function invalidate() {
     if (!raf && canRender()) raf = requestAnimationFrame(render)
+  }
+
+  // The 3D canvas is a derived view. Match its ambient/clear colors to the
+  // UI appearance without rebuilding any geometry or touching optical state.
+  function syncAppearance() {
+    const lightMode = document.documentElement.dataset.theme === 'light'
+    background.setHex(lightMode ? 0xeaf2f9 : 0x111a26)
+    ambient.color.setHex(lightMode ? 0xffffff : 0xb8cbe3)
+    ambient.intensity = lightMode ? 1.75 : 1.35
+    light.color.setHex(lightMode ? 0xffffff : 0xf4f8ff)
+    light.intensity = lightMode ? 2.3 : 2.7
+    fill.color.setHex(lightMode ? 0xa9c9ee : 0x8db9ec)
+    fill.intensity = lightMode ? 0.7 : 0.85
+    invalidate()
   }
 
   function cancelFrame() {
@@ -204,6 +220,7 @@ export function mountViewer(host: HTMLDivElement, report: (status: ViewerStatus 
       fail('The 3D scene could not update. Retry to rebuild the viewer.')
     }
   })
+  const appearanceObserver = new MutationObserver(syncAppearance)
   const resizeObserver = new ResizeObserver(resize)
   const visibilityObserver = new IntersectionObserver(([entry]) => {
     intersecting = entry.isIntersecting
@@ -216,6 +233,7 @@ export function mountViewer(host: HTMLDivElement, report: (status: ViewerStatus 
     disposed = true
     cancelFrame()
     unsubscribe()
+    appearanceObserver.disconnect()
     resizeObserver.disconnect()
     visibilityObserver.disconnect()
     canvas.removeEventListener('webglcontextlost', onLost)
@@ -245,6 +263,8 @@ export function mountViewer(host: HTMLDivElement, report: (status: ViewerStatus 
     window.addEventListener('resize', resize)
     resizeObserver.observe(host)
     visibilityObserver.observe(host)
+    appearanceObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    syncAppearance()
     resize()
   } catch (error) {
     dispose()
