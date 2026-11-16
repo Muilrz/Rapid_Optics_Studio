@@ -506,3 +506,12 @@
 @media (prefers-reduced-motion:reduce) {
   .toolbar-button,.workspace-navigation button,.component-library-item,.project-controls button {transition:none;}
 }
+
+/* Preserve the existing compact toolbar on narrower desktops. */
+@media (max-width: 1100px) {
+  .appearance-label { display: none; }
+  .appearance-toggle { min-width: 36px; padding-inline: 8px; }
+}
+@media (max-width: 660px) {
+  .toolbar-actions { flex-wrap: wrap; justify-content: flex-end; }
+}
